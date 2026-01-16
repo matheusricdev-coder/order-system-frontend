@@ -3,7 +3,11 @@ import SearchBar from "./SearchBar";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const Header = () => {
+interface HeaderProps {
+  coinBalance?: number;
+}
+
+const Header = ({ coinBalance = 0 }: HeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
@@ -30,6 +34,12 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Coin Balance */}
+            <div className="flex items-center gap-1 bg-primary-foreground/20 backdrop-blur-sm px-2.5 py-1.5 rounded-full mr-1">
+              <span className="text-base">🪙</span>
+              <span className="text-sm font-bold text-primary-foreground">{coinBalance}</span>
+            </div>
+
             <button 
               onClick={() => navigate("/login")}
               className="p-2 hover:bg-brand-hover rounded-lg transition-colors"

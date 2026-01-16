@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import DailyLoginBar from "@/components/DailyLoginBar";
 import ProductCard from "@/components/ProductCard";
 
 const mockProducts = [
@@ -74,10 +75,21 @@ const categories = [
   { name: "Games", emoji: "🎮" },
 ];
 
+// Simulating user's login history for the week (Sunday to Saturday)
+// true = logged in that day, false = didn't log in
+const mockLoginDays = [true, true, true, false, false, false, false];
+const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+
+// Calculate coins based on login days (5 coins per day)
+const totalCoins = mockLoginDays.filter(Boolean).length * 5;
+
 const Home = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header coinBalance={totalCoins} />
+      
+      {/* Daily Login Gamification */}
+      <DailyLoginBar loginDays={mockLoginDays} currentDay={currentDayOfWeek} />
       
       {/* Categories */}
       <div className="bg-card border-b border-border">

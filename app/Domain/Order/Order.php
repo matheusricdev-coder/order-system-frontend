@@ -10,6 +10,8 @@ final class Order
 {
     private string $id;
     private string $userId;
+    private OrderStatus $status;
+
 
     /** @var OrderItem[] */
     private array $items = [];
@@ -18,6 +20,7 @@ final class Order
     {
         $this->id = $id;
         $this->userId = $userId;
+        $this->status = OrderStatus::CREATED;
     }
 
     public function id(): string
@@ -64,5 +67,32 @@ final class Order
         }
 
         return $total;
+    }
+    public function canBePaid(): bool
+    {
+        return $this->status === OrderStatus::CREATED;
+    }
+
+    public function markAsPaid(): void
+    {
+        if (!$this->canBePaid()) {
+            throw new DomainException('Order cannot be paid');
+        }
+
+        $this->status = OrderStatus::PAID;
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return $this->status === OrderStatus::CREATED;
+    }
+
+    public function markAsCancelled(): void
+    {
+        if (!$this->canBeCancelled()) {
+            throw new DomainException('Order cannot be cancelled');
+        }
+
+        $this->status = OrderStatus::CANCELLED;
     }
 }

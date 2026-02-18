@@ -32,9 +32,9 @@ final class CancelOrderEndpointTest extends TestCase
         $response
             ->assertOk()
             ->assertHeader('X-Correlation-Id', 'corr-123')
-            ->assertJsonPath('orderId', $orderId)
-            ->assertJsonPath('status', 'cancelled')
-            ->assertJsonPath('correlationId', 'corr-123');
+            ->assertJsonPath('data.id', $orderId)
+            ->assertJsonPath('data.status', 'cancelled')
+            ->assertJsonPath('meta.correlationId', 'corr-123');
     }
 
     public function test_it_returns_401_without_auth_token(): void

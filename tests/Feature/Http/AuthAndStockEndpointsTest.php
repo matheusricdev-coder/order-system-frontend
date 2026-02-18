@@ -34,11 +34,11 @@ final class AuthAndStockEndpointsTest extends TestCase
             'password' => 'secret123',
         ])->assertOk();
 
-        $token = $login->json('accessToken');
+        $token = $login->json('data.token.value');
 
         $this->getJson('/api/v1/me', ['Authorization' => "Bearer {$token}"])
             ->assertOk()
-            ->assertJsonPath('id', $userId);
+            ->assertJsonPath('data.id', $userId);
     }
 
     public function test_it_returns_stock_by_product(): void

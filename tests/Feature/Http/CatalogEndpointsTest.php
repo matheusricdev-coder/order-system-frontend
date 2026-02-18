@@ -55,6 +55,6 @@ final class CatalogEndpointsTest extends TestCase
 
         $this->getJson('/api/v1/categories')
             ->assertOk()
-            ->assertJsonCount(2);
+            ->assertJsonCount(2, 'data');
     }
 }

@@ -36,7 +36,10 @@ final class OrderController extends Controller
         ));
 
         return response()->json(
-            $dto->toArray() + ['correlationId' => $this->correlationId($request)],
+            [
+                'data' => $dto->toArray(),
+                'meta' => ['correlationId' => $this->correlationId($request)],
+            ],
             201,
         );
     }
@@ -53,9 +56,10 @@ final class OrderController extends Controller
             requesterId: $authUser->id,
         ));
 
-        return response()->json(
-            $dto->toArray() + ['correlationId' => $this->correlationId($request)]
-        );
+        return response()->json([
+            'data' => $dto->toArray(),
+            'meta' => ['correlationId' => $this->correlationId($request)],
+        ]);
     }
 
     public function cancel(
@@ -71,9 +75,8 @@ final class OrderController extends Controller
         ));
 
         return response()->json([
-            'orderId'       => $dto->id,
-            'status'        => $dto->status,
-            'correlationId' => $this->correlationId($request),
+            'data' => $dto->toArray(),
+            'meta' => ['correlationId' => $this->correlationId($request)],
         ]);
     }
 
@@ -84,12 +87,12 @@ final class OrderController extends Controller
     ): JsonResponse {
         $authUser = $this->authUser($request);
 
-        return response()->json(
-            $handler->handle(new GetOrderQuery(
+        return response()->json([
+            'data' => $handler->handle(new GetOrderQuery(
                 orderId: $id,
                 requesterId: $authUser->id,
-            ))
-        );
+            )),
+        ]);
     }
 
     public function index(
@@ -98,14 +101,22 @@ final class OrderController extends Controller
     ): JsonResponse {
         $authUser = $this->authUser($request);
 
-        return response()->json(
-            $handler->handle(new ListOrdersQuery(
-                requesterId: $authUser->id,
-                status: $request->query('status'),
-                perPage: (int) $request->query('perPage', 15),
-                page: (int) $request->query('page', 1),
-            ))
-        );
+        $result = $handler->handle(new ListOrdersQuery(
+            requesterId: $authUser->id,
+            status: $request->query('status'),
+            perPage: (int) $request->query('perPage', 15),
+            page: (int) $request->query('page', 1),
+        ));
+
+        return response()->json([
+            'data' => $result['data'],
+            'meta' => [
+                'total'       => $result['total'],
+                'perPage'     => $result['per_page'],
+                'currentPage' => $result['current_page'],
+                'lastPage'    => $result['last_page'],
+            ],
+        ]);
     }
 
     private function authUser(Request $request): UserModel

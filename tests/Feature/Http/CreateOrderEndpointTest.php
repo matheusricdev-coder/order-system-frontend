@@ -33,8 +33,8 @@ final class CreateOrderEndpointTest extends TestCase
             'name'           => 'Teclado',
             'price_amount'   => 1000,
             'price_currency' => 'BRL',
-            'category_id'    => (string) str()->uuid(),
-            'company_id'     => (string) str()->uuid(),
+            'category_id'    => $this->seedCategory(),
+            'company_id'     => $this->seedCompany(),
         ]);
 
         StockModel::query()->create([
@@ -112,8 +112,8 @@ final class CreateOrderEndpointTest extends TestCase
             'name'           => 'Teclado',
             'price_amount'   => 1000,
             'price_currency' => 'BRL',
-            'category_id'    => (string) str()->uuid(),
-            'company_id'     => (string) str()->uuid(),
+            'category_id'    => $this->seedCategory(),
+            'company_id'     => $this->seedCompany(),
         ]);
 
         StockModel::query()->create([

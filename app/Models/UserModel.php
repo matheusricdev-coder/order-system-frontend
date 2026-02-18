@@ -23,6 +23,7 @@ final class UserModel extends Authenticatable
         'password',
         'cpf',
         'active',
+        'role',
         'company_id',
     ];
 

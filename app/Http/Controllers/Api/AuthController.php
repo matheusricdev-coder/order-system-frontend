@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterRequest;
+use App\Models\UserDailyLoginModel;
 use App\Models\UserModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 final class AuthController extends Controller
@@ -53,6 +55,8 @@ final class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
+        $this->recordDailyLogin($user);
+
         return response()->json([
             'data' => [
                 'user'  => $this->toUserDto($user),
@@ -77,6 +81,54 @@ final class AuthController extends Controller
         $user->currentAccessToken()?->delete();
 
         return response()->json([], 204);
+    }
+
+    public function loginStreak(Request $request): JsonResponse
+    {
+        /** @var UserModel $user */
+        $user = $request->user();
+
+        $streak = $this->buildWeekStreak($user);
+
+        return response()->json([
+            'data' => [
+                'weekDays'   => $streak,
+                'totalCoins' => array_sum($streak) * 5,
+            ],
+        ]);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private function recordDailyLogin(UserModel $user): void
+    {
+        $today = Carbon::today()->toDateString();
+
+        UserDailyLoginModel::firstOrCreate(
+            ['user_id' => $user->id, 'date' => $today],
+            ['id' => (string) str()->uuid()],
+        );
+    }
+
+    /** Returns a 7-element bool array (Sun=0 … Sat=6) for the current week. */
+    private function buildWeekStreak(UserModel $user): array
+    {
+        $startOfWeek = Carbon::now()->startOfWeek(Carbon::SUNDAY);
+        $endOfWeek   = Carbon::now()->endOfWeek(Carbon::SATURDAY);
+
+        $loggedDays = UserDailyLoginModel::query()
+            ->where('user_id', $user->id)
+            ->whereBetween('date', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
+            ->pluck('date')
+            ->map(fn ($d) => Carbon::parse($d)->dayOfWeek) // 0=Sun … 6=Sat
+            ->toArray();
+
+        $week = array_fill(0, 7, false);
+        foreach ($loggedDays as $dow) {
+            $week[$dow] = true;
+        }
+
+        return $week;
     }
 
     private function toUserDto(UserModel $user): array

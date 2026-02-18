@@ -27,7 +27,7 @@ final class CatalogController extends Controller
         }
 
         $paginator = $query
-            ->with('gallery')
+            ->with(['gallery', 'category', 'company'])
             ->orderBy('name')
             ->paginate((int) $request->query('perPage', 15))
             ->through(fn (ProductModel $product): array => $this->toProductDto($product));
@@ -45,7 +45,7 @@ final class CatalogController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $product = ProductModel::query()->with('gallery')->findOrFail($id);
+        $product = ProductModel::query()->with(['gallery', 'category', 'company'])->findOrFail($id);
 
         return response()->json(['data' => $this->toProductDto($product)]);
     }
@@ -56,6 +56,7 @@ final class CatalogController extends Controller
             'data' => CategoryModel::query()
                 ->orderBy('name')
                 ->get()
+                ->unique('name')
                 ->map(static fn (CategoryModel $category): array => [
                     'id'   => $category->id,
                     'name' => $category->name,
@@ -67,11 +68,13 @@ final class CatalogController extends Controller
     private function toProductDto(ProductModel $product): array
     {
         return [
-            'id'         => $product->id,
-            'name'       => $product->name,
-            'categoryId' => $product->category_id,
-            'companyId'  => $product->company_id,
-            'price'      => [
+            'id'           => $product->id,
+            'name'         => $product->name,
+            'categoryId'   => $product->category_id,
+            'categoryName' => $product->relationLoaded('category') ? $product->category?->name : null,
+            'companyId'    => $product->company_id,
+            'companyName'  => $product->relationLoaded('company') ? $product->company?->trade_name : null,
+            'price'        => [
                 'amount'   => $product->price_amount,
                 'currency' => $product->price_currency,
             ],

@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->string('cpf')->nullable();
 
             $table->boolean('active')->default(true);
+            $table->string('role')->default('customer')->comment('customer | admin');
             $table->uuid('company_id')->nullable();
 
             $table->timestamps();

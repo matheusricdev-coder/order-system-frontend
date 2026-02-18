@@ -11,6 +11,7 @@ use App\Application\Repositories\Stock\StockRepository;
 use App\Domain\Common\Money;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderItem;
+use App\Domain\Order\OrderStatus;
 use App\Domain\Stock\Stock;
 use DomainException;
 use PHPUnit\Framework\TestCase;
@@ -35,7 +36,7 @@ final class CancelOrderHandlerTest extends TestCase
         self::assertSame(1, $transactionManager->runCalls);
         self::assertSame(['o-1'], $orderRepository->forUpdateLookups);
         self::assertSame(['p-1'], $stockRepository->forUpdateLookups);
-        self::assertSame('CANCELLED', $orderRepository->current()->status()->value);
+        self::assertSame(OrderStatus::CANCELLED, $orderRepository->current()->status());
     }
 
     public function test_it_rejects_order_that_cannot_be_cancelled(): void

@@ -36,7 +36,7 @@ final class PayOrderHandlerTest extends TestCase
         self::assertSame(1, $transactionManager->runCalls);
         self::assertSame(['o-1'], $orderRepository->forUpdateLookups);
         self::assertSame(['p-1'], $stockRepository->forUpdateLookups);
-        self::assertTrue($paidOrder->status()->value === 'PAID');
+        self::assertTrue($paidOrder->status()->value === 'paid');
     }
 
     public function test_it_rejects_order_that_cannot_be_paid(): void

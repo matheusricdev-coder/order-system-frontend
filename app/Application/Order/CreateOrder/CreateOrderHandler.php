@@ -3,6 +3,7 @@
 namespace App\Application\Order\CreateOrder;
 
 use App\Common\IdGenerator;
+use App\Application\Common\TransactionManager;
 use App\Application\Repositories\User\UserRepository;
 use App\Application\Repositories\Product\ProductRepository;
 use App\Application\Repositories\Stock\StockRepository;
@@ -18,13 +19,15 @@ final class CreateOrderHandler
     private ProductRepository $productRepository;
     private StockRepository $stockRepository;
     private OrderRepository $orderRepository;
+    private TransactionManager $transactionManager;
 
     public function __construct(
         UserRepository $userRepository,
         ProductRepository $productRepository,
         StockRepository $stockRepository,
         OrderRepository $orderRepository,
-        IdGenerator $idGenerator
+        IdGenerator $idGenerator,
+        TransactionManager $transactionManager
 
     ) {
         $this->userRepository = $userRepository;
@@ -32,41 +35,44 @@ final class CreateOrderHandler
         $this->stockRepository = $stockRepository;
         $this->orderRepository = $orderRepository;
         $this->idGenerator = $idGenerator;
+        $this->transactionManager = $transactionManager;
     }
 
     public function handle(CreateOrderCommand $command): Order
     {
-        $user = $this->userRepository->findById($command->userId());
+        return $this->transactionManager->run(function () use ($command): Order {
+            $user = $this->userRepository->findById($command->userId());
 
-        if (!$user->isActive()) {
-            throw new DomainException('Inactive user cannot create orders');
-        }
+            if (!$user->isActive()) {
+                throw new DomainException('Inactive user cannot create orders');
+            }
 
-        $order = new Order(
-            id: $this->idGenerator->generate(),
-            userId: $user->id()
-        );
-
-        foreach ($command->items() as $itemData) {
-            $product = $this->productRepository->findById($itemData['productId']);
-            $stock = $this->stockRepository->findByProductId($product->id());
-
-            $stock->reserve($itemData['quantity']);
-
-            $orderItem = new OrderItem(
+            $order = new Order(
                 id: $this->idGenerator->generate(),
-                productId: $product->id(),
-                quantity: $itemData['quantity'],
-                unitPrice: $product->price()
+                userId: $user->id()
             );
 
-            $order->addItem($orderItem);
+            foreach ($command->items() as $itemData) {
+                $product = $this->productRepository->findById($itemData['productId']);
+                $stock = $this->stockRepository->findByProductIdForUpdate($product->id());
 
-            $this->stockRepository->save($stock);
-        }
+                $stock->reserve($itemData['quantity']);
 
-        $this->orderRepository->save($order);
+                $orderItem = new OrderItem(
+                    id: $this->idGenerator->generate(),
+                    productId: $product->id(),
+                    quantity: $itemData['quantity'],
+                    unitPrice: $product->price()
+                );
 
-        return $order;
+                $order->addItem($orderItem);
+
+                $this->stockRepository->save($stock);
+            }
+
+            $this->orderRepository->save($order);
+
+            return $order;
+        });
     }
 }

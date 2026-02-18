@@ -12,6 +12,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -49,8 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $e instanceof StockNotFoundException  => 404,
 
                 $e instanceof UnauthorizedOrderException => 403,
-                $e instanceof InactiveUserException      => 422,
-                $e instanceof \DomainException           => 409,
+                $e instanceof InactiveUserException      => 422,                $e instanceof AuthenticationException    => 401,                $e instanceof \DomainException           => 409,
                 $e instanceof HttpExceptionInterface     => $e->getStatusCode(),
                 default                                  => 500,
             };

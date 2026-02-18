@@ -39,7 +39,7 @@ final class OrderDTO
     public function toArray(): array
     {
         return [
-            'orderId'  => $this->id,
+            'id'       => $this->id,
             'userId'   => $this->userId,
             'status'   => $this->status,
             'total'    => [

@@ -26,31 +26,41 @@ final class CatalogController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
 
-        $products = $query
+        $paginator = $query
             ->orderBy('name')
-            ->paginate((int) $request->query('perPage', 15));
+            ->paginate((int) $request->query('perPage', 15))
+            ->through(fn (ProductModel $product): array => $this->toProductDto($product));
 
-        return response()->json($products->through(fn (ProductModel $product): array => $this->toProductDto($product)));
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'total'       => $paginator->total(),
+                'perPage'     => $paginator->perPage(),
+                'currentPage' => $paginator->currentPage(),
+                'lastPage'    => $paginator->lastPage(),
+            ],
+        ]);
     }
 
     public function show(string $id): JsonResponse
     {
         $product = ProductModel::query()->findOrFail($id);
 
-        return response()->json($this->toProductDto($product));
+        return response()->json(['data' => $this->toProductDto($product)]);
     }
 
     public function categories(): JsonResponse
     {
-        return response()->json(
-            CategoryModel::query()
+        return response()->json([
+            'data' => CategoryModel::query()
                 ->orderBy('name')
                 ->get()
                 ->map(static fn (CategoryModel $category): array => [
-                    'id' => $category->id,
+                    'id'   => $category->id,
                     'name' => $category->name,
                 ])
-        );
+                ->values(),
+        ]);
     }
 
     private function toProductDto(ProductModel $product): array

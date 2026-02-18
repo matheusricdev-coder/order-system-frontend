@@ -28,8 +28,8 @@ final class PayOrderEndpointTest extends TestCase
         $response
             ->assertOk()
             ->assertHeader('X-Correlation-Id')
-            ->assertJsonPath('orderId', $orderId)
-            ->assertJsonPath('status', 'paid');
+            ->assertJsonPath('data.id', $orderId)
+            ->assertJsonPath('data.status', 'paid');
     }
 
     public function test_it_returns_401_without_auth_token(): void

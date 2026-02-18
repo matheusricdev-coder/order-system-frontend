@@ -54,11 +54,11 @@ final class CreateOrderEndpointTest extends TestCase
         $response
             ->assertCreated()
             ->assertHeader('X-Correlation-Id')
-            ->assertJsonPath('status', 'created')
-            ->assertJsonPath('total.amount', 2000)
-            ->assertJsonPath('total.currency', 'BRL')
-            ->assertJsonPath('items.0.productId', $productId)
-            ->assertJsonPath('items.0.quantity', 2);
+            ->assertJsonPath('data.status', 'created')
+            ->assertJsonPath('data.total.amount', 2000)
+            ->assertJsonPath('data.total.currency', 'BRL')
+            ->assertJsonPath('data.items.0.productId', $productId)
+            ->assertJsonPath('data.items.0.quantity', 2);
     }
 
     public function test_it_returns_401_without_auth_token(): void

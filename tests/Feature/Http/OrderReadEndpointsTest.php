@@ -22,9 +22,9 @@ final class OrderReadEndpointsTest extends TestCase
         $this->withBearerToken($userId)
             ->getJson("/api/v1/orders/{$orderId}")
             ->assertOk()
-            ->assertJsonPath('id', $orderId)
-            ->assertJsonPath('userId', $userId)
-            ->assertJsonPath('items.0.totalPrice.amount', 2000);
+            ->assertJsonPath('data.id', $orderId)
+            ->assertJsonPath('data.userId', $userId)
+            ->assertJsonPath('data.items.0.totalPrice.amount', 2000);
     }
 
     public function test_it_returns_401_without_auth_on_show(): void

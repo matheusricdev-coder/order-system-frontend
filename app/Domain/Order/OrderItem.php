@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\OrderItem;
+namespace App\Domain\Order;
 
 use App\Domain\Common\Money;
 

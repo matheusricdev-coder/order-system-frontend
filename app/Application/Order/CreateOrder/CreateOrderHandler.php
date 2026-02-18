@@ -2,16 +2,18 @@
 
 namespace App\Application\Order\CreateOrder;
 
+use App\Common\IdGenerator;
 use App\Application\Repositories\User\UserRepository;
 use App\Application\Repositories\Product\ProductRepository;
 use App\Application\Repositories\Stock\StockRepository;
 use App\Application\Repositories\Order\OrderRepository;
 use App\Domain\Order\Order;
-use App\Domain\OrderItem\OrderItem;
+use App\Domain\Order\OrderItem;
 use DomainException;
 
 final class CreateOrderHandler
 {
+    private IdGenerator $idGenerator;
     private UserRepository $userRepository;
     private ProductRepository $productRepository;
     private StockRepository $stockRepository;
@@ -21,12 +23,15 @@ final class CreateOrderHandler
         UserRepository $userRepository,
         ProductRepository $productRepository,
         StockRepository $stockRepository,
-        OrderRepository $orderRepository
+        OrderRepository $orderRepository,
+        IdGenerator $idGenerator
+
     ) {
         $this->userRepository = $userRepository;
         $this->productRepository = $productRepository;
         $this->stockRepository = $stockRepository;
         $this->orderRepository = $orderRepository;
+        $this->idGenerator = $idGenerator;
     }
 
     public function handle(CreateOrderCommand $command): Order
@@ -38,7 +43,7 @@ final class CreateOrderHandler
         }
 
         $order = new Order(
-            id: uniqid(),
+            id: $this->idGenerator->generate(),
             userId: $user->id()
         );
 
@@ -49,7 +54,7 @@ final class CreateOrderHandler
             $stock->reserve($itemData['quantity']);
 
             $orderItem = new OrderItem(
-                id: uniqid(),
+                id: $this->idGenerator->generate(),
                 productId: $product->id(),
                 quantity: $itemData['quantity'],
                 unitPrice: $product->price()

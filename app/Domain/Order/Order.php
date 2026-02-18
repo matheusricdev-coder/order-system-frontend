@@ -3,7 +3,7 @@
 namespace App\Domain\Order;
 
 use App\Domain\Common\Money;
-use App\Domain\OrderItem\OrderItem;
+use App\Domain\Order\OrderItem;
 use DomainException;
 
 final class Order
@@ -36,6 +36,11 @@ final class Order
     public function items(): array
     {
         return $this->items;
+    }
+
+    public function status(): OrderStatus
+    {
+        return $this->status;
     }
 
     public function addItem(OrderItem $item): void

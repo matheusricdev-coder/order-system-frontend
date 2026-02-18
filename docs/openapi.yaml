@@ -60,6 +60,8 @@ paths:
         '200': { description: Product list by company }
   /orders:
     get:
+      security:
+        - bearerAuth: []
       summary: List orders
       parameters:
         - in: query
@@ -74,11 +76,15 @@ paths:
       responses:
         '200': { description: Order list }
     post:
+      security:
+        - bearerAuth: []
       summary: Create order
       responses:
         '201': { description: Created }
   /orders/{id}:
     get:
+      security:
+        - bearerAuth: []
       summary: Get order detail
       parameters:
         - in: path
@@ -89,11 +95,15 @@ paths:
         '200': { description: Order detail }
   /orders/{id}/pay:
     post:
+      security:
+        - bearerAuth: []
       summary: Pay order
       responses:
         '200': { description: Paid }
   /orders/{id}/cancel:
     post:
+      security:
+        - bearerAuth: []
       summary: Cancel order
       responses:
         '200': { description: Cancelled }
@@ -110,19 +120,38 @@ paths:
   /auth/login:
     post:
       summary: Login and receive bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
       responses:
         '200': { description: Authenticated }
   /auth/logout:
     post:
+      security:
+        - bearerAuth: []
       summary: Logout current user
       responses:
         '204': { description: Logged out }
   /me:
     get:
+      security:
+        - bearerAuth: []
       summary: Return authenticated user
       responses:
         '200': { description: Authenticated user }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
   schemas:
     Error:
       type: object

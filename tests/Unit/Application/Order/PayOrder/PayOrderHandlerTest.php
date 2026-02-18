@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Order\PayOrder;
 
+use App\Application\Common\DomainEventBus;
 use App\Application\Common\TransactionManager;
 use App\Application\Order\PayOrder\PayOrderCommand;
 use App\Application\Order\PayOrder\PayOrderHandler;
@@ -28,10 +29,11 @@ final class PayOrderHandlerTest extends TestCase
         $stock->reserve(2);
 
         $transactionManager = new TransactionManagerSpy();
-        $orderRepository    = new InMemoryOrderRepository($order);
-        $stockRepository    = new InMemoryStockRepository($stock);
+        $domainEventBus = new DomainEventBusSpy();
+        $orderRepository = new InMemoryOrderRepository($order);
+        $stockRepository = new InMemoryStockRepository($stock);
 
-        $handler = new PayOrderHandler($orderRepository, $stockRepository, $transactionManager);
+        $handler = new PayOrderHandler($orderRepository, $stockRepository, $transactionManager, $domainEventBus);
 
         $dto = $handler->handle(new PayOrderCommand(orderId: 'o-1', requesterId: 'u-1'));
 
@@ -39,6 +41,7 @@ final class PayOrderHandlerTest extends TestCase
         self::assertSame(['o-1'], $orderRepository->forUpdateLookups);
         self::assertSame(['p-1'], $stockRepository->forUpdateLookups);
         self::assertSame('paid', $dto->status);
+        self::assertCount(1, $domainEventBus->publishedEvents);
     }
 
     public function test_it_rejects_order_that_cannot_be_paid(): void
@@ -48,7 +51,8 @@ final class PayOrderHandlerTest extends TestCase
         $handler = new PayOrderHandler(
             new InMemoryOrderRepository($order),
             new InMemoryStockRepository(new Stock('s-1', 'p-1', 10)),
-            new TransactionManagerSpy()
+            new TransactionManagerSpy(),
+            new DomainEventBusSpy(),
         );
 
         $this->expectException(DomainException::class);
@@ -68,32 +72,13 @@ final class PayOrderHandlerTest extends TestCase
         $handler = new PayOrderHandler(
             new InMemoryOrderRepository($order),
             new InMemoryStockRepository($stock),
-            new TransactionManagerSpy()
+            new TransactionManagerSpy(),
+            new DomainEventBusSpy(),
         );
 
         $this->expectException(DomainException::class);
 
         $handler->handle(new PayOrderCommand(orderId: 'o-1', requesterId: 'other-user'));
-    }
-
-    public function test_paid_order_emits_domain_event(): void
-    {
-        $order = new Order('o-1', 'u-1');
-        $order->addItem(new OrderItem('i-1', 'p-1', 1, new Money(1000, 'BRL')));
-
-        $stock = new Stock('s-1', 'p-1', 10);
-        $stock->reserve(1);
-
-        $handler = new PayOrderHandler(
-            new InMemoryOrderRepository($order),
-            new InMemoryStockRepository($stock),
-            new TransactionManagerSpy()
-        );
-
-        $handler->handle(new PayOrderCommand(orderId: 'o-1', requesterId: 'u-1'));
-
-        // After pullDomainEvents() the aggregate should have no pending events
-        self::assertEmpty($order->pullDomainEvents());
     }
 }
 
@@ -105,6 +90,17 @@ final class TransactionManagerSpy implements TransactionManager
     {
         $this->runCalls++;
         return $fn();
+    }
+}
+
+final class DomainEventBusSpy implements DomainEventBus
+{
+    /** @var object[] */
+    public array $publishedEvents = [];
+
+    public function publish(array $events): void
+    {
+        $this->publishedEvents = [...$this->publishedEvents, ...$events];
     }
 }
 

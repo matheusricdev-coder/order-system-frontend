@@ -271,3 +271,48 @@ Allow direct database manipulation bypassing aggregates
 They must be rejected.
 
 Architecture is a constraint, not a suggestion.
+## API Integration (Frontend-ready)
+
+### Base URL and versioning
+- Base: `/api/v1`
+- OpenAPI contract: `docs/openapi.yaml`
+
+### Core read endpoints
+- `GET /products?categoryId=&companyId=&q=&page=`
+- `GET /products/{id}`
+- `GET /categories`
+- `GET /companies/{id}`
+- `GET /companies/{id}/products`
+- `GET /orders/{id}`
+- `GET /orders?userId=&status=&page=`
+- `GET /stocks/{productId}` and `GET /products/{id}/stock`
+
+### Auth endpoints (mock bearer for quick integration)
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /me`
+
+### Error format (consistent)
+```json
+{
+  "error": {
+    "code": "ORDER_CANNOT_BE_PAID",
+    "message": "Order cannot be paid",
+    "correlation_id": "9f198f78-4b76-48ea-8d59-76019c07a70c"
+  }
+}
+```
+
+### cURL examples
+```bash
+curl -X GET 'http://localhost:8000/api/v1/products?q=cafe&page=1'
+
+curl -X GET 'http://localhost:8000/api/v1/orders?userId=<UUID>&status=created&page=1'
+
+curl -X POST 'http://localhost:8000/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ana@example.com","password":"secret123"}'
+
+curl -X GET 'http://localhost:8000/api/v1/me' \
+  -H 'Authorization: Bearer <ACCESS_TOKEN>'
+```

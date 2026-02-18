@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class ProductModel extends Model
@@ -26,5 +27,15 @@ final class ProductModel extends Model
     {
         return $this->hasMany(ProductGalleryModel::class, 'product_id')
             ->orderBy('position');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CategoryModel::class, 'category_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(CompanyModel::class, 'company_id');
     }
 }

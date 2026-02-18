@@ -50,8 +50,8 @@ final class AuthAndStockEndpointsTest extends TestCase
             'name' => 'Mouse',
             'price_amount' => 500,
             'price_currency' => 'BRL',
-            'category_id' => (string) str()->uuid(),
-            'company_id' => (string) str()->uuid(),
+            'category_id' => $this->seedCategory(),
+            'company_id' => $this->seedCompany(),
         ]);
 
         StockModel::query()->create([

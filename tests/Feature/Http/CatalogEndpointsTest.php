@@ -36,8 +36,8 @@ final class CatalogEndpointsTest extends TestCase
             'name' => 'Pão',
             'price_amount' => 500,
             'price_currency' => 'BRL',
-            'category_id' => (string) str()->uuid(),
-            'company_id' => (string) str()->uuid(),
+            'category_id' => $this->seedCategory(),
+            'company_id' => $this->seedCompany(),
         ]);
 
         $response = $this->getJson("/api/v1/products?categoryId={$categoryId}&companyId={$companyId}&q=Café");

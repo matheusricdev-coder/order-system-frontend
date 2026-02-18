@@ -26,6 +26,7 @@ $apiV1 = static function (): void {
     Route::post('/auth/login',              [AuthController::class, 'login']);
     Route::post('/auth/logout',             [AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::get('/me',                       [AuthController::class, 'me'])->middleware('auth:sanctum');
+    Route::get('/me/login-streak',          [AuthController::class, 'loginStreak'])->middleware('auth:sanctum');
 
     // ── Orders (all require authentication) ───────────────────────────────
     Route::middleware('auth:sanctum')->group(static function (): void {

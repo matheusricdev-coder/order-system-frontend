@@ -2,22 +2,25 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import DailyLoginBar from "@/components/DailyLoginBar";
 import ProductCard from "@/components/ProductCard";
-import { useCategories, useProducts } from "@/hooks/useCatalog";
+import { useCategories, useLoginStreak, useProducts } from "@/hooks/useCatalog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Emoji map — augment API category names with visuals
 const CATEGORY_EMOJI: Record<string, string> = {
-  tecnologia: "📱", moda: "👕", casa: "🏠", esportes: "⚽",
-  beleza: "💄", games: "🎮", alimentos: "🍔", livros: "📚",
+  "eletrônicos": "📱", "informática": "💻", "moda": "👕", "calçados": "👟",
+  "casa e decoração": "🏠", "eletrodomésticos": "🔌", "esportes e lazer": "⚽",
+  "beleza e saúde": "💄", "games": "🎮", "alimentos e bebidas": "🍔",
+  "livros e papelaria": "📚", "brinquedos": "🧸", "automotivo": "🚗",
+  "ferramentas": "🔧", "animais de estimação": "🐾",
 };
 
-const mockLoginDays = [true, true, true, false, false, false, false];
 const currentDayOfWeek = new Date().getDay();
-const totalCoins = mockLoginDays.filter(Boolean).length * 5;
 
 const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState("");
+  const { isAuthenticated } = useAuth();
 
   const { data: categoriesRes } = useCategories();
   const { data: productsRes, isLoading: loadingProducts } = useProducts({
@@ -25,16 +28,24 @@ const Home = () => {
     q: search || undefined,
     perPage: 12,
   });
+  const { data: streakRes } = useLoginStreak();
 
   const categories = categoriesRes?.data ?? [];
   const products = productsRes?.data ?? [];
+  const loginDays: boolean[] = streakRes?.data?.weekDays ?? Array(7).fill(false);
+  const totalCoins: number = streakRes?.data?.totalCoins ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Header coinBalance={totalCoins} onSearch={setSearch} />
 
       {/* Daily Login Gamification */}
-      <DailyLoginBar loginDays={mockLoginDays} currentDay={currentDayOfWeek} />
+      <DailyLoginBar
+        loginDays={loginDays}
+        currentDay={currentDayOfWeek}
+        totalCoins={totalCoins}
+        isAuthenticated={isAuthenticated}
+      />
 
       {/* Categories */}
       <div className="bg-card border-b border-border">

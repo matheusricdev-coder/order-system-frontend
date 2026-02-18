@@ -80,6 +80,9 @@ export const authApi = {
 
   me: () => api.get<ApiResponse<User>>('/me'),
 
+  loginStreak: () =>
+    api.get<ApiResponse<{ weekDays: boolean[]; totalCoins: number }>>('/me/login-streak'),
+
   logout: () => api.post<void>('/auth/logout'),
 };
 

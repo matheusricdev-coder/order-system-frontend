@@ -3,6 +3,7 @@ import SearchBar from "./SearchBar";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 interface HeaderProps {
   coinBalance?: number;
@@ -13,6 +14,7 @@ const Header = ({ coinBalance = 0, onSearch }: HeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const { totalItems, openCart } = useCart();
 
   const handleSearch = (q: string) => {
     setSearchQuery(q);
@@ -76,11 +78,16 @@ const Header = ({ coinBalance = 0, onSearch }: HeaderProps) => {
               </button>
             )}
 
-            <button className="p-2 hover:bg-brand-hover rounded-lg transition-colors relative">
+            <button
+              className="p-2 hover:bg-brand-hover rounded-lg transition-colors relative"
+              onClick={openCart}
+            >
               <ShoppingCart className="w-6 h-6 text-primary-foreground" />
-              <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                3
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                  {totalItems > 99 ? "99+" : totalItems}
+                </span>
+              )}
             </button>
           </div>
         </div>

@@ -27,6 +27,7 @@ final class CatalogController extends Controller
         }
 
         $paginator = $query
+            ->with('gallery')
             ->orderBy('name')
             ->paginate((int) $request->query('perPage', 15))
             ->through(fn (ProductModel $product): array => $this->toProductDto($product));
@@ -44,7 +45,7 @@ final class CatalogController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $product = ProductModel::query()->findOrFail($id);
+        $product = ProductModel::query()->with('gallery')->findOrFail($id);
 
         return response()->json(['data' => $this->toProductDto($product)]);
     }
@@ -66,14 +67,17 @@ final class CatalogController extends Controller
     private function toProductDto(ProductModel $product): array
     {
         return [
-            'id' => $product->id,
-            'name' => $product->name,
+            'id'         => $product->id,
+            'name'       => $product->name,
             'categoryId' => $product->category_id,
-            'companyId' => $product->company_id,
-            'price' => [
-                'amount' => $product->price_amount,
+            'companyId'  => $product->company_id,
+            'price'      => [
+                'amount'   => $product->price_amount,
                 'currency' => $product->price_currency,
             ],
+            'images' => $product->relationLoaded('gallery')
+                ? $product->gallery->pluck('url')->values()->all()
+                : [],
         ];
     }
 }

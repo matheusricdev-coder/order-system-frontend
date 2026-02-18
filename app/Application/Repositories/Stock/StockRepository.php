@@ -8,5 +8,7 @@ interface StockRepository
 {
     public function findByProductId(string $productId): Stock;
 
+    public function findByProductIdForUpdate(string $productId): Stock;
+
     public function save(Stock $stock): void;
 }

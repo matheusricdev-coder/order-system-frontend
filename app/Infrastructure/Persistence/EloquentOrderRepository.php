@@ -21,31 +21,21 @@ final class EloquentOrderRepository implements OrderRepository
             throw new DomainException('Order not found');
         }
 
-        $order = new Order(
-            id: (string) $orderModel->id,
-            userId: (string) $orderModel->user_id
-        );
+        return $this->hydrate($orderModel);
+    }
 
-        $status = OrderStatus::from((string) $orderModel->status);
-        if ($status === OrderStatus::PAID) {
-            $order->markAsPaid();
-        }
-        if ($status === OrderStatus::CANCELLED) {
-            $order->markAsCancelled();
-        }
+    public function findByIdForUpdate(string $id): Order
+    {
+        $orderModel = OrderModel::query()
+            ->where('id', $id)
+            ->lockForUpdate()
+            ->first();
 
-        $items = OrderItemModel::query()->where('order_id', $id)->get();
-
-        foreach ($items as $itemModel) {
-            $order->addItem(new OrderItem(
-                id: (string) $itemModel->id,
-                productId: (string) $itemModel->product_id,
-                quantity: (int) $itemModel->quantity,
-                unitPrice: new Money((int) $itemModel->unit_price_amount, (string) $itemModel->unit_price_currency)
-            ));
+        if ($orderModel === null) {
+            throw new DomainException('Order not found');
         }
 
-        return $order;
+        return $this->hydrate($orderModel);
     }
 
     public function save(Order $order): void
@@ -70,5 +60,34 @@ final class EloquentOrderRepository implements OrderRepository
                 'unit_price_currency' => $item->unitPrice()->currency(),
             ]);
         }
+    }
+
+    private function hydrate(OrderModel $orderModel): Order
+    {
+        $order = new Order(
+            id: (string) $orderModel->id,
+            userId: (string) $orderModel->user_id
+        );
+
+        $items = OrderItemModel::query()->where('order_id', (string) $orderModel->id)->get();
+
+        foreach ($items as $itemModel) {
+            $order->addItem(new OrderItem(
+                id: (string) $itemModel->id,
+                productId: (string) $itemModel->product_id,
+                quantity: (int) $itemModel->quantity,
+                unitPrice: new Money((int) $itemModel->unit_price_amount, (string) $itemModel->unit_price_currency)
+            ));
+        }
+
+        $status = OrderStatus::from((string) $orderModel->status);
+
+        if ($status === OrderStatus::PAID) {
+            $order->markAsPaid();
+        } elseif ($status === OrderStatus::CANCELLED) {
+            $order->markAsCancelled();
+        }
+
+        return $order;
     }
 }

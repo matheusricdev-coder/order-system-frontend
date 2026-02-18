@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Common\IdGenerator;
 use App\Common\UuidGenerator;
+use App\Application\Common\TransactionManager;
+use App\Infrastructure\Common\LaravelTransactionManager;
 use App\Application\Repositories\Order\OrderRepository;
 use App\Application\Repositories\Product\ProductRepository;
 use App\Application\Repositories\Stock\StockRepository;
@@ -18,6 +20,7 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(TransactionManager::class, LaravelTransactionManager::class);
         $this->app->bind(IdGenerator::class, UuidGenerator::class);
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
         $this->app->bind(ProductRepository::class, EloquentProductRepository::class);

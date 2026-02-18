@@ -17,18 +17,21 @@ final class EloquentStockRepository implements StockRepository
             throw new DomainException('Stock not found for product');
         }
 
-        $stock = new Stock(
-            id: (string) $model->id,
-            productId: (string) $model->product_id,
-            quantityTotal: (int) $model->quantity_total
-        );
+        return $this->toDomain($model);
+    }
 
-        $reserved = (int) $model->quantity_reserved;
-        if ($reserved > 0) {
-            $stock->reserve($reserved);
+    public function findByProductIdForUpdate(string $productId): Stock
+    {
+        $model = StockModel::query()
+            ->where('product_id', $productId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($model === null) {
+            throw new DomainException('Stock not found for product');
         }
 
-        return $stock;
+        return $this->toDomain($model);
     }
 
     public function save(Stock $stock): void
@@ -41,5 +44,21 @@ final class EloquentStockRepository implements StockRepository
                 'quantity_reserved' => $stock->reserved(),
             ]
         );
+    }
+
+    private function toDomain(StockModel $model): Stock
+    {
+        $stock = new Stock(
+            id: (string) $model->id,
+            productId: (string) $model->product_id,
+            quantityTotal: (int) $model->quantity_total
+        );
+
+        $reserved = (int) $model->quantity_reserved;
+        if ($reserved > 0) {
+            $stock->reserve($reserved);
+        }
+
+        return $stock;
     }
 }

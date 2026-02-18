@@ -6,12 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/types/api";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login, register } = useAuth();
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -20,6 +23,8 @@ const Login = () => {
 
   const [signupData, setSignupData] = useState({
     name: "",
+    surname: "",
+    birth_date: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -28,41 +33,55 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulating login
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo de volta ao MarketPlace",
-      });
+    try {
+      await login(loginData.email, loginData.password);
+      toast({ title: "Login realizado!", description: "Bem-vindo de volta ao MarketPlace" });
       navigate("/");
-    }, 1000);
+    } catch (err) {
+      const message =
+        err instanceof ApiError && err.status === 401
+          ? "E-mail ou senha inválidos"
+          : "Erro ao entrar. Tente novamente.";
+      toast({ title: "Erro", description: message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (signupData.password !== signupData.confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "As senhas não coincidem", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
-    
-    // Simulating signup
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Conta criada!",
-        description: "Sua conta foi criada com sucesso",
+    try {
+      await register({
+        name: signupData.name,
+        surname: signupData.surname,
+        birth_date: signupData.birth_date,
+        email: signupData.email,
+        password: signupData.password,
+        password_confirmation: signupData.confirmPassword,
       });
+      toast({ title: "Conta criada!", description: "Seja bem-vindo ao MarketPlace" });
       navigate("/");
-    }, 1000);
+    } catch (err) {
+      let description = "Erro ao criar conta. Tente novamente.";
+      if (err instanceof ApiError) {
+        if (err.body.details) {
+          const firstField = Object.values(err.body.details)[0];
+          description = firstField?.[0] ?? description;
+        } else {
+          description = err.body.message;
+        }
+      }
+      toast({ title: "Erro", description, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -161,13 +180,36 @@ const Login = () => {
 
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome completo</Label>
+                    <Label htmlFor="signup-name">Nome</Label>
                     <Input
                       id="signup-name"
                       type="text"
-                      placeholder="Seu nome"
+                      placeholder="Seu primeiro nome"
                       value={signupData.name}
                       onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-surname">Sobrenome</Label>
+                    <Input
+                      id="signup-surname"
+                      type="text"
+                      placeholder="Sobrenome"
+                      value={signupData.surname}
+                      onChange={(e) => setSignupData({ ...signupData, surname: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-birth">Data de nascimento</Label>
+                    <Input
+                      id="signup-birth"
+                      type="date"
+                      value={signupData.birth_date}
+                      onChange={(e) => setSignupData({ ...signupData, birth_date: e.target.value })}
                       required
                     />
                   </div>

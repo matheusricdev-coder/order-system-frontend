@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class ProductModel extends Model
 {
@@ -18,4 +21,10 @@ final class ProductModel extends Model
         'category_id',
         'company_id',
     ];
+
+    public function gallery(): HasMany
+    {
+        return $this->hasMany(ProductGalleryModel::class, 'product_id')
+            ->orderBy('position');
+    }
 }

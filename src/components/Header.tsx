@@ -1,15 +1,28 @@
-import { ShoppingCart, User, Menu } from "lucide-react";
+import { ShoppingCart, User, Menu, LogOut } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   coinBalance?: number;
+  onSearch?: (q: string) => void;
 }
 
-const Header = ({ coinBalance = 0 }: HeaderProps) => {
+const Header = ({ coinBalance = 0, onSearch }: HeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleSearch = (q: string) => {
+    setSearchQuery(q);
+    onSearch?.(q);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-brand shadow-sm">
@@ -26,10 +39,10 @@ const Header = ({ coinBalance = 0 }: HeaderProps) => {
           </Link>
 
           <div className="flex-1 hidden sm:block">
-            <SearchBar 
+            <SearchBar
               value={searchQuery}
-              onChange={setSearchQuery}
-              onSearch={() => console.log("Searching:", searchQuery)}
+              onChange={handleSearch}
+              onSearch={() => onSearch?.(searchQuery)}
             />
           </div>
 
@@ -40,12 +53,29 @@ const Header = ({ coinBalance = 0 }: HeaderProps) => {
               <span className="text-sm font-bold text-primary-foreground">{coinBalance}</span>
             </div>
 
-            <button 
-              onClick={() => navigate("/login")}
-              className="p-2 hover:bg-brand-hover rounded-lg transition-colors"
-            >
-              <User className="w-6 h-6 text-primary-foreground" />
-            </button>
+            {isAuthenticated ? (
+              <>
+                <span className="hidden sm:block text-sm text-primary-foreground/80 mr-1">
+                  Olá, {user?.name}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 hover:bg-brand-hover rounded-lg transition-colors"
+                  title="Sair"
+                >
+                  <LogOut className="w-6 h-6 text-primary-foreground" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="p-2 hover:bg-brand-hover rounded-lg transition-colors"
+                title="Entrar"
+              >
+                <User className="w-6 h-6 text-primary-foreground" />
+              </button>
+            )}
+
             <button className="p-2 hover:bg-brand-hover rounded-lg transition-colors relative">
               <ShoppingCart className="w-6 h-6 text-primary-foreground" />
               <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
@@ -56,10 +86,10 @@ const Header = ({ coinBalance = 0 }: HeaderProps) => {
         </div>
 
         <div className="mt-3 sm:hidden">
-          <SearchBar 
+          <SearchBar
             value={searchQuery}
-            onChange={setSearchQuery}
-            onSearch={() => console.log("Searching:", searchQuery)}
+            onChange={handleSearch}
+            onSearch={() => onSearch?.(searchQuery)}
           />
         </div>
       </div>

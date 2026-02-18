@@ -1,109 +1,76 @@
+import { useState } from "react";
 import Header from "@/components/Header";
 import DailyLoginBar from "@/components/DailyLoginBar";
 import ProductCard from "@/components/ProductCard";
+import { useCategories, useProducts } from "@/hooks/useCatalog";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const mockProducts = [
-  {
-    id: 1,
-    title: "Smartphone Samsung Galaxy S24 Ultra 256GB 5G",
-    price: 5499.00,
-    originalPrice: 7299.00,
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop",
-    freeShipping: true,
-  },
-  {
-    id: 2,
-    title: "Fone de Ouvido Bluetooth JBL Tune 520BT",
-    price: 199.90,
-    originalPrice: 299.90,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
-    freeShipping: true,
-  },
-  {
-    id: 3,
-    title: "Tênis Nike Air Max 90 Masculino",
-    price: 599.99,
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-    freeShipping: false,
-  },
-  {
-    id: 4,
-    title: "Notebook Dell Inspiron 15 Intel Core i7 16GB",
-    price: 3899.00,
-    originalPrice: 4599.00,
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop",
-    freeShipping: true,
-  },
-  {
-    id: 5,
-    title: "Smartwatch Apple Watch Series 9 GPS 45mm",
-    price: 3999.00,
-    image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop",
-    freeShipping: true,
-  },
-  {
-    id: 6,
-    title: "Câmera Canon EOS R50 Mirrorless 4K",
-    price: 5199.00,
-    originalPrice: 5999.00,
-    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop",
-    freeShipping: true,
-  },
-  {
-    id: 7,
-    title: "Console PlayStation 5 Slim 1TB",
-    price: 3799.00,
-    image: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop",
-    freeShipping: true,
-  },
-  {
-    id: 8,
-    title: "Cadeira Gamer ThunderX3 EC3 Preta",
-    price: 899.90,
-    originalPrice: 1299.90,
-    image: "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=400&h=400&fit=crop",
-    freeShipping: false,
-  },
-];
+// Emoji map — augment API category names with visuals
+const CATEGORY_EMOJI: Record<string, string> = {
+  tecnologia: "📱", moda: "👕", casa: "🏠", esportes: "⚽",
+  beleza: "💄", games: "🎮", alimentos: "🍔", livros: "📚",
+};
 
-const categories = [
-  { name: "Tecnologia", emoji: "📱" },
-  { name: "Moda", emoji: "👕" },
-  { name: "Casa", emoji: "🏠" },
-  { name: "Esportes", emoji: "⚽" },
-  { name: "Beleza", emoji: "💄" },
-  { name: "Games", emoji: "🎮" },
-];
-
-// Simulating user's login history for the week (Sunday to Saturday)
-// true = logged in that day, false = didn't log in
 const mockLoginDays = [true, true, true, false, false, false, false];
-const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
-
-// Calculate coins based on login days (5 coins per day)
+const currentDayOfWeek = new Date().getDay();
 const totalCoins = mockLoginDays.filter(Boolean).length * 5;
 
 const Home = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [search, setSearch] = useState("");
+
+  const { data: categoriesRes } = useCategories();
+  const { data: productsRes, isLoading: loadingProducts } = useProducts({
+    categoryId: selectedCategory,
+    q: search || undefined,
+    perPage: 12,
+  });
+
+  const categories = categoriesRes?.data ?? [];
+  const products = productsRes?.data ?? [];
+
   return (
     <div className="min-h-screen bg-background">
-      <Header coinBalance={totalCoins} />
-      
+      <Header coinBalance={totalCoins} onSearch={setSearch} />
+
       {/* Daily Login Gamification */}
       <DailyLoginBar loginDays={mockLoginDays} currentDay={currentDayOfWeek} />
-      
+
       {/* Categories */}
       <div className="bg-card border-b border-border">
         <div className="container py-3">
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {categories.map((category) => (
-              <button
-                key={category.name}
-                className="flex-shrink-0 px-4 py-2 bg-secondary hover:bg-brand-light rounded-full text-sm font-medium text-foreground transition-colors"
-              >
-                <span className="mr-1.5">{category.emoji}</span>
-                {category.name}
-              </button>
-            ))}
+            <button
+              onClick={() => setSelectedCategory(undefined)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                !selectedCategory
+                  ? "bg-brand text-primary-foreground"
+                  : "bg-secondary hover:bg-brand-light text-foreground"
+              }`}
+            >
+              Todos
+            </button>
+            {categories.map((category) => {
+              const emoji = CATEGORY_EMOJI[category.name.toLowerCase()] ?? "🛍️";
+              return (
+                <button
+                  key={category.id}
+                  onClick={() =>
+                    setSelectedCategory(
+                      selectedCategory === category.id ? undefined : category.id
+                    )
+                  }
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category.id
+                      ? "bg-brand text-primary-foreground"
+                      : "bg-secondary hover:bg-brand-light text-foreground"
+                  }`}
+                >
+                  <span className="mr-1.5">{emoji}</span>
+                  {category.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -122,23 +89,45 @@ const Home = () => {
       {/* Products Grid */}
       <div className="container pb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-foreground">Produtos em destaque</h2>
-          <button className="text-sm text-brand font-medium hover:underline">
-            Ver todos
-          </button>
+          <h2 className="text-lg font-bold text-foreground">
+            {selectedCategory ? "Produtos filtrados" : "Produtos em destaque"}
+          </h2>
+          {productsRes?.meta && (
+            <span className="text-sm text-muted-foreground">
+              {productsRes.meta.total} produtos
+            </span>
+          )}
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {mockProducts.map((product, index) => (
-            <div 
-              key={product.id} 
-              className="animate-slide-up"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <ProductCard {...product} />
-            </div>
-          ))}
-        </div>
+
+        {loadingProducts ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square rounded-xl" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <p className="text-center text-muted-foreground py-16">
+            Nenhum produto encontrado.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {products.map((product, index) => (
+              <div
+                key={product.id}
+                className="animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <ProductCard
+                  id={product.id}
+                  title={product.name}
+                  price={product.price.amount / 100}
+                  images={product.images}
+                  freeShipping={product.price.amount >= 10000}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

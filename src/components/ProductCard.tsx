@@ -1,15 +1,18 @@
-import { Heart } from "lucide-react";
+import { Heart, ImageOff } from "lucide-react";
+
+const DEFAULT_IMAGE = "/placeholder-product.svg";
 
 interface ProductCardProps {
-  id: number;
+  id: string;
   title: string;
   price: number;
   originalPrice?: number;
-  image: string;
+  images?: string[];
   freeShipping?: boolean;
 }
 
-const ProductCard = ({ title, price, originalPrice, image, freeShipping }: ProductCardProps) => {
+const ProductCard = ({ title, price, originalPrice, images = [], freeShipping }: ProductCardProps) => {
+  const coverImage = images.length > 0 ? images[0] : null;
   const discount = originalPrice 
     ? Math.round(((originalPrice - price) / originalPrice) * 100) 
     : 0;
@@ -24,11 +27,21 @@ const ProductCard = ({ title, price, originalPrice, image, freeShipping }: Produ
   return (
     <div className="product-card cursor-pointer group">
       <div className="relative aspect-square bg-card overflow-hidden">
-        <img
-          src={image}
-          alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {coverImage ? (
+          <img
+            src={coverImage}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div className={`${coverImage ? 'hidden' : ''} w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2`}>
+          <ImageOff className="w-10 h-10 opacity-40" />
+          <span className="text-xs opacity-60">Sem imagem</span>
+        </div>
         <button 
           className="absolute top-2 right-2 p-1.5 bg-card/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => {

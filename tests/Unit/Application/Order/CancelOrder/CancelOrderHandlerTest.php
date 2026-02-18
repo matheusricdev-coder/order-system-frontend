@@ -11,7 +11,6 @@ use App\Application\Repositories\Stock\StockRepository;
 use App\Domain\Common\Money;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderItem;
-use App\Domain\Order\OrderStatus;
 use App\Domain\Stock\Stock;
 use DomainException;
 use PHPUnit\Framework\TestCase;

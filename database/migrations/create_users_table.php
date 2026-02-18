@@ -9,8 +9,20 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->primary();
+
+            $table->string('name');
+            $table->string('surname');
+            $table->date('birth_date');
+
+            $table->string('email')->nullable()->unique();
+            $table->string('phone')->nullable()->unique();
+
+            $table->string('password');
+            $table->string('cpf')->nullable();
+
             $table->boolean('active')->default(true);
             $table->uuid('company_id')->nullable();
+
             $table->timestamps();
         });
     }

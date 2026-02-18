@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domain\Stock;
 
-use DomainException;
+use App\Domain\Stock\Exceptions\InsufficientStockException;
 
 final class Stock
 {
@@ -14,47 +16,32 @@ final class Stock
     public function __construct(string $id, string $productId, int $quantityTotal)
     {
         if ($quantityTotal < 0) {
-            throw new DomainException('Total quantity cannot be negative');
+            throw new \DomainException('Total quantity cannot be negative');
         }
 
-        $this->id = $id;
-        $this->productId = $productId;
-        $this->quantityTotal = $quantityTotal;
+        $this->id              = $id;
+        $this->productId       = $productId;
+        $this->quantityTotal   = $quantityTotal;
     }
 
-    public function id(): string
-    {
-        return $this->id;
-    }
-
-    public function productId(): string
-    {
-        return $this->productId;
-    }
-
-    public function total(): int
-    {
-        return $this->quantityTotal;
-    }
-
-    public function reserved(): int
-    {
-        return $this->quantityReserved;
-    }
-
-    public function available(): int
-    {
-        return $this->quantityTotal - $this->quantityReserved;
-    }
+    public function id(): string { return $this->id; }
+    public function productId(): string { return $this->productId; }
+    public function total(): int { return $this->quantityTotal; }
+    public function reserved(): int { return $this->quantityReserved; }
+    public function available(): int { return $this->quantityTotal - $this->quantityReserved; }
 
     public function reserve(int $quantity): void
     {
         if ($quantity <= 0) {
-            throw new DomainException('Reserve quantity must be positive');
+            throw new \DomainException('Reserve quantity must be positive');
         }
 
         if ($quantity > $this->available()) {
-            throw new DomainException('Insufficient stock');
+            throw InsufficientStockException::forProduct(
+                $this->productId,
+                $quantity,
+                $this->available()
+            );
         }
 
         $this->quantityReserved += $quantity;
@@ -63,11 +50,11 @@ final class Stock
     public function release(int $quantity): void
     {
         if ($quantity <= 0) {
-            throw new DomainException('Release quantity must be positive');
+            throw new \DomainException('Release quantity must be positive');
         }
 
         if ($quantity > $this->quantityReserved) {
-            throw new DomainException('Cannot release more than reserved');
+            throw new \DomainException('Cannot release more than reserved');
         }
 
         $this->quantityReserved -= $quantity;
@@ -76,14 +63,14 @@ final class Stock
     public function consume(int $quantity): void
     {
         if ($quantity <= 0) {
-            throw new DomainException('Consume quantity must be positive');
+            throw new \DomainException('Consume quantity must be positive');
         }
 
         if ($quantity > $this->quantityReserved) {
-            throw new DomainException('Cannot consume more than reserved');
+            throw new \DomainException('Cannot consume more than reserved');
         }
 
         $this->quantityReserved -= $quantity;
-        $this->quantityTotal -= $quantity;
+        $this->quantityTotal    -= $quantity;
     }
 }

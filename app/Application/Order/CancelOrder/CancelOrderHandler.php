@@ -1,35 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Application\Order\CancelOrder;
 
 use App\Application\Common\TransactionManager;
+use App\Application\Order\DTO\OrderDTO;
 use App\Application\Repositories\Order\OrderRepository;
 use App\Application\Repositories\Stock\StockRepository;
-use DomainException;
+use App\Domain\Order\Exceptions\UnauthorizedOrderException;
+use App\Domain\Order\Order;
 
 final class CancelOrderHandler
 {
-    private OrderRepository $orderRepository;
-    private StockRepository $stockRepository;
-    private TransactionManager $transactionManager;
-
     public function __construct(
-        OrderRepository $orderRepository,
-        StockRepository $stockRepository,
-        TransactionManager $transactionManager
-    ) {
-        $this->orderRepository = $orderRepository;
-        $this->stockRepository = $stockRepository;
-        $this->transactionManager = $transactionManager;
-    }
+        private readonly OrderRepository $orderRepository,
+        private readonly StockRepository $stockRepository,
+        private readonly TransactionManager $transactionManager,
+    ) {}
 
-    public function handle(string $orderId): void
+    public function handle(CancelOrderCommand $command): OrderDTO
     {
-        $this->transactionManager->run(function () use ($orderId): void {
-            $order = $this->orderRepository->findByIdForUpdate($orderId);
+        $order = $this->transactionManager->run(function () use ($command): Order {
+            $order = $this->orderRepository->findByIdForUpdate($command->orderId);
 
-            if (!$order->canBeCancelled()) {
-                throw new DomainException('Order cannot be cancelled');
+            if (!$order->ownedBy($command->requesterId)) {
+                throw UnauthorizedOrderException::notOwner($command->orderId);
             }
 
             foreach ($order->items() as $item) {
@@ -39,8 +35,21 @@ final class CancelOrderHandler
             }
 
             $order->markAsCancelled();
-
             $this->orderRepository->save($order);
+
+            return $order;
         });
+
+        // Dispatch domain events after transaction commits.
+        // Guard prevents failures in unit tests that run without the full Laravel container.
+        if (function_exists('app') && app()->bound('events')) {
+            foreach ($order->pullDomainEvents() as $event) {
+                event($event);
+            }
+        } else {
+            $order->pullDomainEvents(); // drain the queue
+        }
+
+        return OrderDTO::fromDomain($order);
     }
 }

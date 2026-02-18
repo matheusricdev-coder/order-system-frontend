@@ -1,78 +1,78 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Application\Order\CreateOrder;
 
-use App\Common\IdGenerator;
 use App\Application\Common\TransactionManager;
-use App\Application\Repositories\User\UserRepository;
+use App\Application\Order\DTO\OrderDTO;
+use App\Application\Repositories\Order\OrderRepository;
 use App\Application\Repositories\Product\ProductRepository;
 use App\Application\Repositories\Stock\StockRepository;
-use App\Application\Repositories\Order\OrderRepository;
+use App\Application\Repositories\User\UserRepository;
+use App\Common\IdGenerator;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderItem;
-use DomainException;
+use App\Domain\User\Exceptions\InactiveUserException;
 
 final class CreateOrderHandler
 {
-    private IdGenerator $idGenerator;
-    private UserRepository $userRepository;
-    private ProductRepository $productRepository;
-    private StockRepository $stockRepository;
-    private OrderRepository $orderRepository;
-    private TransactionManager $transactionManager;
-
     public function __construct(
-        UserRepository $userRepository,
-        ProductRepository $productRepository,
-        StockRepository $stockRepository,
-        OrderRepository $orderRepository,
-        IdGenerator $idGenerator,
-        TransactionManager $transactionManager
+        private readonly UserRepository $userRepository,
+        private readonly ProductRepository $productRepository,
+        private readonly StockRepository $stockRepository,
+        private readonly OrderRepository $orderRepository,
+        private readonly IdGenerator $idGenerator,
+        private readonly TransactionManager $transactionManager,
+    ) {}
 
-    ) {
-        $this->userRepository = $userRepository;
-        $this->productRepository = $productRepository;
-        $this->stockRepository = $stockRepository;
-        $this->orderRepository = $orderRepository;
-        $this->idGenerator = $idGenerator;
-        $this->transactionManager = $transactionManager;
-    }
-
-    public function handle(CreateOrderCommand $command): Order
+    public function handle(CreateOrderCommand $command): OrderDTO
     {
-        return $this->transactionManager->run(function () use ($command): Order {
+        $order = $this->transactionManager->run(function () use ($command): Order {
             $user = $this->userRepository->findById($command->userId());
 
             if (!$user->isActive()) {
-                throw new DomainException('Inactive user cannot create orders');
+                throw InactiveUserException::forUser($user->id());
             }
 
             $order = new Order(
                 id: $this->idGenerator->generate(),
-                userId: $user->id()
+                userId: $user->id(),
             );
 
             foreach ($command->items() as $itemData) {
                 $product = $this->productRepository->findById($itemData['productId']);
-                $stock = $this->stockRepository->findByProductIdForUpdate($product->id());
+                $stock   = $this->stockRepository->findByProductIdForUpdate($product->id());
 
                 $stock->reserve($itemData['quantity']);
 
-                $orderItem = new OrderItem(
+                $order->addItem(new OrderItem(
                     id: $this->idGenerator->generate(),
                     productId: $product->id(),
                     quantity: $itemData['quantity'],
-                    unitPrice: $product->price()
-                );
-
-                $order->addItem($orderItem);
+                    unitPrice: $product->price(),
+                ));
 
                 $this->stockRepository->save($stock);
             }
 
+            $order->recordCreated();
             $this->orderRepository->save($order);
 
             return $order;
         });
+
+        // Dispatch domain events after transaction commits (outside DB transaction boundary).
+        // Guard prevents failures in unit tests that run without the full Laravel container.
+        if (function_exists('app') && app()->bound('events')) {
+            foreach ($order->pullDomainEvents() as $event) {
+                event($event);
+            }
+        } else {
+            $order->pullDomainEvents(); // drain the queue
+        }
+
+        return OrderDTO::fromDomain($order);
     }
 }
+

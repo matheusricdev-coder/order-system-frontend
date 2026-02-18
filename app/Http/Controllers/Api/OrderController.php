@@ -111,7 +111,7 @@ final class OrderController extends Controller
     private function authUser(Request $request): UserModel
     {
         /** @var UserModel $user */
-        $user = $request->attributes->get('auth_user');
+        $user = $request->user();
 
         return $user;
     }

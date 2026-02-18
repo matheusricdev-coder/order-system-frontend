@@ -23,7 +23,7 @@ final class AuthController extends Controller
             abort(401, 'Invalid credentials');
         }
 
-        $token = base64_encode($user->id);
+        $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'tokenType' => 'Bearer',
@@ -35,13 +35,18 @@ final class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         /** @var UserModel $user */
-        $user = $request->attributes->get('auth_user');
+        $user = $request->user();
 
         return response()->json($this->toUserDto($user));
     }
 
-    public function logout(): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
+        /** @var UserModel $user */
+        $user = $request->user();
+
+        $user->currentAccessToken()?->delete();
+
         return response()->json([], 204);
     }
 

@@ -116,6 +116,8 @@ final class PayOrderEndpointTest extends TestCase
 
     private function withBearerToken(string $userId): static
     {
-        return $this->withHeaders(['Authorization' => 'Bearer ' . base64_encode($userId)]);
+        $token = UserModel::query()->findOrFail($userId)->createToken('test-token')->plainTextToken;
+
+        return $this->withHeaders(['Authorization' => 'Bearer ' . $token]);
     }
 }

@@ -316,3 +316,17 @@ curl -X POST 'http://localhost:8000/api/v1/auth/login' \
 curl -X GET 'http://localhost:8000/api/v1/me' \
   -H 'Authorization: Bearer <ACCESS_TOKEN>'
 ```
+
+14. API Authentication (Laravel Sanctum)
+
+The API now uses Laravel Sanctum personal access tokens (Bearer token).
+
+- Login: `POST /api/v1/auth/login` with `email` and `password`.
+- Response includes `accessToken` and `tokenType` (`Bearer`).
+- Protected routes require `Authorization: Bearer <token>`.
+- Logout: `POST /api/v1/auth/logout` revokes only the current access token.
+- Current user: `GET /api/v1/me`.
+
+Migration note:
+- Run migrations to create `personal_access_tokens` before authenticating with tokens.
+

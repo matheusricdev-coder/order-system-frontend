@@ -7,7 +7,6 @@ use App\Domain\Stock\Exceptions\StockNotFoundException;
 use App\Domain\User\Exceptions\InactiveUserException;
 use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Http\Middleware\CorrelationIdMiddleware;
-use App\Http\Middleware\MockAuthMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,9 +24,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(CorrelationIdMiddleware::class);
-        $middleware->alias([
-            'auth.mock' => MockAuthMiddleware::class,
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $e, Request $request): ?JsonResponse {

@@ -23,11 +23,11 @@ $apiV1 = static function (): void {
 
     // ── Auth ──────────────────────────────────────────────────────────────
     Route::post('/auth/login',              [AuthController::class, 'login']);
-    Route::post('/auth/logout',             [AuthController::class, 'logout'])->middleware('auth.mock');
-    Route::get('/me',                       [AuthController::class, 'me'])->middleware('auth.mock');
+    Route::post('/auth/logout',             [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::get('/me',                       [AuthController::class, 'me'])->middleware('auth:sanctum');
 
     // ── Orders (all require authentication) ───────────────────────────────
-    Route::middleware('auth.mock')->group(static function (): void {
+    Route::middleware('auth:sanctum')->group(static function (): void {
         Route::post('/orders',                  [OrderController::class, 'create']);
         Route::post('/orders/{id}/pay',         [OrderController::class, 'pay']);
         Route::post('/orders/{id}/cancel',      [OrderController::class, 'cancel']);

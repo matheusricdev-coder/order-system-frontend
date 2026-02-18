@@ -1,59 +1,273 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Mini Market Place – Architectural Guidelines & System Rules
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This document defines the architectural rules, constraints, and design principles of the system.
 
-## About Laravel
+All code must comply with these rules.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This file exists to protect architectural integrity over time.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. Architectural Philosophy
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The system must follow:
 
-## Learning Laravel
+Clean Architecture
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Hexagonal Architecture (Ports & Adapters)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Tactical DDD
 
-## Laravel Sponsors
+Explicit Transaction Boundaries
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Strong Consistency over Availability
 
-### Premium Partners
+The primary goal is correctness and integrity, not rapid feature growth.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+2. Layering Rules
 
-## Contributing
+The system is divided into four logical layers:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Domain
+Application
+Infrastructure
+Interface
 
-## Code of Conduct
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Dependency direction must always point inward:
 
-## Security Vulnerabilities
+Interface → Application → Domain
+Infrastructure → Application → Domain
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-## License
+The Domain layer must never depend on:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Laravel
+
+Eloquent
+
+Database
+
+Framework-specific tools
+
+Violation of this rule invalidates the architecture.
+
+3. Domain Layer Rules
+
+The Domain layer:
+
+Contains business rules
+
+Enforces invariants
+
+Protects consistency
+
+Is framework-independent
+
+3.1 Domain Constraints
+
+No framework imports
+
+No database logic
+
+No HTTP logic
+
+No logging logic
+
+Only pure business logic.
+
+3.2 Aggregates
+
+Aggregates must:
+
+Protect invariants
+
+Expose intention-revealing methods
+
+Prevent invalid state transitions
+
+State mutation must be controlled and explicit.
+
+3.3 Value Objects
+
+Value Objects:
+
+Must be immutable
+
+Must not expose identity
+
+Must encapsulate behavior
+
+4. Application Layer Rules
+
+The Application layer:
+
+Orchestrates use cases
+
+Defines ports (interfaces)
+
+Controls transaction boundaries
+
+It must not:
+
+Contain business rules
+
+Depend directly on Eloquent
+
+Contain persistence logic
+
+4.1 Use Case Structure
+
+Each use case must:
+
+Be isolated in its own class
+
+Execute inside a transaction
+
+Coordinate domain entities
+
+5. Infrastructure Layer Rules
+
+Infrastructure implements adapters.
+
+It is allowed to:
+
+Use Laravel
+
+Use Eloquent
+
+Use database transactions
+
+Apply pessimistic locking
+
+It is not allowed to:
+
+Introduce business rules
+
+Modify domain invariants
+
+Bypass aggregate logic
+
+6. Transaction Rules
+
+All write operations must:
+
+Execute inside a transaction
+
+Be atomic
+
+Avoid partial writes
+
+Transaction boundaries belong in the Application layer via abstraction.
+
+7. Concurrency Rules
+
+All critical mutations must:
+
+Use pessimistic locking
+
+Lock the affected rows
+
+Prevent race conditions
+
+Concurrency protection is mandatory for:
+
+Stock reservation
+
+Stock consumption
+
+Order state transitions
+
+8. Order Lifecycle Rules
+
+Order must:
+
+Start in CREATED
+
+Transition to PAID or CANCELLED
+
+Never revert states
+
+Never allow invalid transitions
+
+Stock must:
+
+Never go negative
+
+Never allow over-reservation
+
+Never allow consumption without reservation
+
+9. Repository Rules
+
+Repositories:
+
+Must be defined as interfaces in Application
+
+Must be implemented in Infrastructure
+
+Must hydrate domain aggregates correctly
+
+Repositories must not expose Eloquent models to the Application or Domain layers.
+
+10. ID Strategy
+
+All primary identifiers must:
+
+Be UUID
+
+Be generated through abstraction
+
+Never be generated directly in Infrastructure logic
+
+11. Non-Functional Requirements
+
+The system must guarantee:
+
+Strong consistency
+
+Deterministic state transitions
+
+Concurrency safety
+
+Clear separation of concerns
+
+Performance optimizations must not violate consistency rules.
+
+12. Extension Rules
+
+Future features must:
+
+Respect layer boundaries
+
+Preserve transaction safety
+
+Avoid leaking framework concerns into Domain
+
+Preserve aggregate integrity
+
+If a feature requires breaking these rules, architecture must be reconsidered.
+
+13. What This System Is Not
+
+Not a CRUD demo
+
+Not framework-driven design
+
+Not anemic domain model
+
+Not eventual-consistency-based
+
+It is intentionally consistency-first.
+
+14. Architectural Integrity Policy
+
+If future changes:
+
+Introduce domain logic into Infrastructure
+
+Break transaction boundaries
+
+Allow direct database manipulation bypassing aggregates
+
+They must be rejected.
+
+Architecture is a constraint, not a suggestion.

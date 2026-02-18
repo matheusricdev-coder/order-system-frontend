@@ -1,0 +1,135 @@
+openapi: 3.0.3
+info:
+  title: Order System API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /products:
+    get:
+      summary: List products
+      parameters:
+        - in: query
+          name: categoryId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: companyId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+      responses:
+        '200': { description: Product list }
+  /products/{id}:
+    get:
+      summary: Get product by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Product detail }
+  /categories:
+    get:
+      summary: List categories
+      responses:
+        '200': { description: Category list }
+  /companies/{id}:
+    get:
+      summary: Get company profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Company detail }
+  /companies/{id}/products:
+    get:
+      summary: List products by company
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Product list by company }
+  /orders:
+    get:
+      summary: List orders
+      parameters:
+        - in: query
+          name: userId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+      responses:
+        '200': { description: Order list }
+    post:
+      summary: Create order
+      responses:
+        '201': { description: Created }
+  /orders/{id}:
+    get:
+      summary: Get order detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Order detail }
+  /orders/{id}/pay:
+    post:
+      summary: Pay order
+      responses:
+        '200': { description: Paid }
+  /orders/{id}/cancel:
+    post:
+      summary: Cancel order
+      responses:
+        '200': { description: Cancelled }
+  /stocks/{productId}:
+    get:
+      summary: Get stock by product id
+      responses:
+        '200': { description: Stock detail }
+  /products/{id}/stock:
+    get:
+      summary: Get stock by product endpoint
+      responses:
+        '200': { description: Stock detail }
+  /auth/login:
+    post:
+      summary: Login and receive bearer token
+      responses:
+        '200': { description: Authenticated }
+  /auth/logout:
+    post:
+      summary: Logout current user
+      responses:
+        '204': { description: Logged out }
+  /me:
+    get:
+      summary: Return authenticated user
+      responses:
+        '200': { description: Authenticated user }
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            correlation_id: { type: string }

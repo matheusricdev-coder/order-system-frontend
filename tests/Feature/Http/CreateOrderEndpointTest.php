@@ -44,7 +44,7 @@ final class CreateOrderEndpointTest extends TestCase
             'quantity_reserved' => 0,
         ]);
 
-        $response = $this->postJson('/api/orders', [
+        $response = $this->postJson('/api/v1/orders', [
             'userId' => $userId,
             'items' => [
                 ['productId' => $productId, 'quantity' => 2],
@@ -63,13 +63,13 @@ final class CreateOrderEndpointTest extends TestCase
 
     public function test_it_returns_422_when_payload_is_invalid(): void
     {
-        $response = $this->postJson('/api/orders', [
+        $response = $this->postJson('/api/v1/orders', [
             'items' => [],
         ]);
 
         $response
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['userId', 'items']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_it_returns_409_on_insufficient_stock(): void
@@ -102,7 +102,7 @@ final class CreateOrderEndpointTest extends TestCase
             'quantity_reserved' => 0,
         ]);
 
-        $response = $this->postJson('/api/orders', [
+        $response = $this->postJson('/api/v1/orders', [
             'userId' => $userId,
             'items' => [
                 ['productId' => $productId, 'quantity' => 2],
@@ -111,12 +111,12 @@ final class CreateOrderEndpointTest extends TestCase
 
         $response
             ->assertStatus(409)
-            ->assertJsonPath('message', 'Insufficient stock');
+            ->assertJsonPath('error.message', 'Insufficient stock');
     }
 
     public function test_it_returns_404_when_user_does_not_exist(): void
     {
-        $response = $this->postJson('/api/orders', [
+        $response = $this->postJson('/api/v1/orders', [
             'userId' => (string) str()->uuid(),
             'items' => [
                 ['productId' => (string) str()->uuid(), 'quantity' => 1],
@@ -125,6 +125,6 @@ final class CreateOrderEndpointTest extends TestCase
 
         $response
             ->assertStatus(404)
-            ->assertJsonPath('message', 'User not found');
+            ->assertJsonPath('error.message', 'User not found');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class OrderModel extends Model
 {
@@ -15,4 +16,9 @@ final class OrderModel extends Model
         'user_id',
         'status',
     ];
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItemModel::class, 'order_id');
+    }
 }

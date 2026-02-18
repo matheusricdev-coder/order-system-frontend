@@ -18,7 +18,7 @@ final class CancelOrderEndpointTest extends TestCase
     {
         $orderId = $this->seedCreatedOrder();
 
-        $response = $this->postJson("/api/orders/{$orderId}/cancel", [], ['X-Correlation-Id' => 'corr-123']);
+        $response = $this->postJson("/api/v1/orders/{$orderId}/cancel", [], ['X-Correlation-Id' => 'corr-123']);
 
         $response
             ->assertOk()
@@ -30,22 +30,22 @@ final class CancelOrderEndpointTest extends TestCase
 
     public function test_it_returns_404_when_order_does_not_exist(): void
     {
-        $response = $this->postJson('/api/orders/'.str()->uuid().'/cancel');
+        $response = $this->postJson('/api/v1/orders/'.str()->uuid().'/cancel');
 
         $response
             ->assertStatus(404)
-            ->assertJsonPath('message', 'Order not found');
+            ->assertJsonPath('error.message', 'Order not found');
     }
 
     public function test_it_returns_409_when_order_cannot_be_cancelled(): void
     {
         $orderId = $this->seedCreatedOrder('paid');
 
-        $response = $this->postJson("/api/orders/{$orderId}/cancel");
+        $response = $this->postJson("/api/v1/orders/{$orderId}/cancel");
 
         $response
             ->assertStatus(409)
-            ->assertJsonPath('message', 'Order cannot be cancelled');
+            ->assertJsonPath('error.message', 'Order cannot be cancelled');
     }
 
     private function seedCreatedOrder(string $status = 'created'): string

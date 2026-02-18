@@ -10,6 +10,7 @@ use App\Domain\Order\Order;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Requests\CreateOrderRequest;
+use App\Models\OrderModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -77,6 +78,30 @@ final class OrderController extends Controller
         ]);
     }
 
+    public function show(string $id): JsonResponse
+    {
+        $order = OrderModel::query()->with('items.product')->findOrFail($id);
+
+        return response()->json($this->toReadDto($order));
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $query = OrderModel::query()->with('items.product')->orderByDesc('created_at');
+
+        if ($userId = $request->query('userId')) {
+            $query->where('user_id', $userId);
+        }
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        $orders = $query->paginate((int) $request->query('perPage', 15));
+
+        return response()->json($orders->through(fn (OrderModel $order): array => $this->toReadDto($order)));
+    }
+
     private function serializeOrder(Order $order, Request $request): array
     {
         $total = $order->totalPrice();
@@ -103,5 +128,37 @@ final class OrderController extends Controller
     private function correlationId(Request $request): ?string
     {
         return $request->attributes->get(CorrelationIdMiddleware::ATTRIBUTE);
+    }
+
+    private function toReadDto(OrderModel $order): array
+    {
+        return [
+            'id' => $order->id,
+            'status' => $order->status,
+            'userId' => $order->user_id,
+            'items' => $order->items->map(function ($item): array {
+                $totalPrice = $item->quantity * $item->unit_price_amount;
+
+                return [
+                    'productId' => $item->product_id,
+                    'name' => $item->product->name ?? null,
+                    'quantity' => $item->quantity,
+                    'unitPrice' => [
+                        'amount' => $item->unit_price_amount,
+                        'currency' => $item->unit_price_currency,
+                    ],
+                    'totalPrice' => [
+                        'amount' => $totalPrice,
+                        'currency' => $item->unit_price_currency,
+                    ],
+                ];
+            })->values()->all(),
+            'total' => [
+                'amount' => $order->items->sum(fn ($item) => $item->quantity * $item->unit_price_amount),
+                'currency' => $order->items->first()->unit_price_currency ?? 'BRL',
+            ],
+            'createdAt' => optional($order->created_at)?->toISOString(),
+            'updatedAt' => optional($order->updated_at)?->toISOString(),
+        ];
     }
 }

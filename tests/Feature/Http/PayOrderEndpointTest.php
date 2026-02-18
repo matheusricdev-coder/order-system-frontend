@@ -6,6 +6,7 @@ namespace Tests\Feature\Http;
 
 use App\Models\OrderItemModel;
 use App\Models\OrderModel;
+use App\Models\ProductModel;
 use App\Models\StockModel;
 use App\Models\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -74,20 +75,33 @@ final class PayOrderEndpointTest extends TestCase
 
     private function seedUser(string $userId): void
     {
-        UserModel::query()->create([
-            'id'         => $userId,
-            'name'       => 'Test',
-            'surname'    => 'User',
-            'birth_date' => '1990-01-01',
-            'password'   => 'secret',
-            'active'     => true,
-        ]);
+        UserModel::query()->firstOrCreate(
+            ['id' => $userId],
+            [
+                'name'       => 'Test',
+                'surname'    => 'User',
+                'birth_date' => '1990-01-01',
+                'password'   => 'secret',
+                'active'     => true,
+            ],
+        );
     }
 
     private function seedCreatedOrder(string $userId, string $status = 'created'): array
     {
         $orderId   = (string) str()->uuid();
         $productId = (string) str()->uuid();
+
+        $this->seedUser($userId);
+
+        ProductModel::query()->create([
+            'id'             => $productId,
+            'name'           => 'Teclado',
+            'price_amount'   => 1000,
+            'price_currency' => 'BRL',
+            'category_id'    => (string) str()->uuid(),
+            'company_id'     => (string) str()->uuid(),
+        ]);
 
         OrderModel::query()->create([
             'id'      => $orderId,

@@ -1,4 +1,5 @@
 import { Heart, ImageOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const DEFAULT_IMAGE = "/placeholder-product.svg";
 
@@ -11,7 +12,8 @@ interface ProductCardProps {
   freeShipping?: boolean;
 }
 
-const ProductCard = ({ title, price, originalPrice, images = [], freeShipping }: ProductCardProps) => {
+const ProductCard = ({ id, title, price, originalPrice, images = [], freeShipping }: ProductCardProps) => {
+  const navigate = useNavigate();
   const coverImage = images.length > 0 ? images[0] : null;
   const discount = originalPrice 
     ? Math.round(((originalPrice - price) / originalPrice) * 100) 
@@ -25,7 +27,7 @@ const ProductCard = ({ title, price, originalPrice, images = [], freeShipping }:
   };
 
   return (
-    <div className="product-card cursor-pointer group">
+    <div className="product-card cursor-pointer group" onClick={() => navigate(`/products/${id}`)}>
       <div className="relative aspect-square bg-card overflow-hidden">
         {coverImage ? (
           <img

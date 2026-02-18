@@ -31,7 +31,9 @@ export interface Product {
   id: string;
   name: string;
   categoryId: string;
+  categoryName: string | null;
   companyId: string;
+  companyName: string | null;
   price: Money;
   images: string[];
 }

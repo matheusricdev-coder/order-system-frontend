@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Infrastructure\Persistence;
 
 use App\Application\Repositories\User\UserRepository;
+use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Domain\User\User;
-use App\Models\UserModel as UserModel;
-use DomainException;
+use App\Models\UserModel;
 
 final class EloquentUserRepository implements UserRepository
 {
@@ -14,7 +16,7 @@ final class EloquentUserRepository implements UserRepository
         $model = UserModel::query()->find($id);
 
         if ($model === null) {
-            throw new DomainException('User not found');
+            throw UserNotFoundException::withId($id);
         }
 
         $user = new User(id: (string) $model->id, active: (bool) $model->active);

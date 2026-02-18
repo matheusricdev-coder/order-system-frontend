@@ -1,5 +1,11 @@
 <?php
 
+use App\Domain\Order\Exceptions\OrderNotFoundException;
+use App\Domain\Order\Exceptions\UnauthorizedOrderException;
+use App\Domain\Product\Exceptions\ProductNotFoundException;
+use App\Domain\Stock\Exceptions\StockNotFoundException;
+use App\Domain\User\Exceptions\InactiveUserException;
+use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Http\Middleware\CorrelationIdMiddleware;
 use App\Http\Middleware\MockAuthMiddleware;
 use Illuminate\Foundation\Application;
@@ -32,35 +38,38 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($e instanceof ValidationException) {
                 return response()->json([
                     'error' => [
-                        'code' => 'VALIDATION_ERROR',
-                        'message' => 'Validation failed',
+                        'code'           => 'VALIDATION_ERROR',
+                        'message'        => 'Validation failed',
                         'correlation_id' => $request->attributes->get(CorrelationIdMiddleware::ATTRIBUTE),
-                        'details' => $e->errors(),
+                        'details'        => $e->errors(),
                     ],
                 ], 422);
             }
 
-            $status = 500;
+            $status = match (true) {
+                $e instanceof OrderNotFoundException,
+                $e instanceof UserNotFoundException,
+                $e instanceof ProductNotFoundException,
+                $e instanceof StockNotFoundException  => 404,
 
-            if ($e instanceof \DomainException) {
-                $status = str_contains(strtolower($e->getMessage()), 'not found') ? 404 : 409;
-            }
-
-            if ($e instanceof HttpExceptionInterface) {
-                $status = $e->getStatusCode();
-            }
+                $e instanceof UnauthorizedOrderException => 403,
+                $e instanceof InactiveUserException      => 422,
+                $e instanceof \DomainException           => 409,
+                $e instanceof HttpExceptionInterface     => $e->getStatusCode(),
+                default                                  => 500,
+            };
 
             if ($status < 400) {
                 return null;
             }
 
             $message = $e->getMessage() ?: 'Request failed';
-            $code = strtoupper(preg_replace('/[^A-Z0-9]+/', '_', $message));
+            $code    = strtoupper(preg_replace('/[^A-Z0-9]+/i', '_', $message));
 
             return response()->json([
                 'error' => [
-                    'code' => $code,
-                    'message' => $message,
+                    'code'           => $code,
+                    'message'        => $message,
                     'correlation_id' => $request->attributes->get(CorrelationIdMiddleware::ATTRIBUTE),
                 ],
             ], $status);

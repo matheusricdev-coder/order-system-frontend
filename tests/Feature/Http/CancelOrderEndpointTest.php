@@ -7,6 +7,7 @@ namespace Tests\Feature\Http;
 use App\Models\OrderItemModel;
 use App\Models\OrderModel;
 use App\Models\StockModel;
+use App\Models\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,9 +17,16 @@ final class CancelOrderEndpointTest extends TestCase
 
     public function test_it_cancels_order_and_returns_payload(): void
     {
-        $orderId = $this->seedCreatedOrder();
+        $userId = (string) str()->uuid();
+        $this->seedUser($userId);
+        $orderId = $this->seedCreatedOrder(userId: $userId);
 
-        $response = $this->postJson("/api/v1/orders/{$orderId}/cancel", [], ['X-Correlation-Id' => 'corr-123']);
+        $response = $this->withBearerToken($userId)
+            ->postJson(
+                "/api/v1/orders/{$orderId}/cancel",
+                [],
+                ['X-Correlation-Id' => 'corr-123'],
+            );
 
         $response
             ->assertOk()
@@ -28,53 +36,91 @@ final class CancelOrderEndpointTest extends TestCase
             ->assertJsonPath('correlationId', 'corr-123');
     }
 
+    public function test_it_returns_401_without_auth_token(): void
+    {
+        $this->postJson('/api/v1/orders/' . str()->uuid() . '/cancel')
+            ->assertStatus(401);
+    }
+
     public function test_it_returns_404_when_order_does_not_exist(): void
     {
-        $response = $this->postJson('/api/v1/orders/'.str()->uuid().'/cancel');
+        $userId = (string) str()->uuid();
+        $this->seedUser($userId);
 
-        $response
+        $this->withBearerToken($userId)
+            ->postJson('/api/v1/orders/' . str()->uuid() . '/cancel')
             ->assertStatus(404)
             ->assertJsonPath('error.message', 'Order not found');
     }
 
+    public function test_it_returns_403_when_requester_is_not_owner(): void
+    {
+        $ownerId     = (string) str()->uuid();
+        $requesterId = (string) str()->uuid();
+        $this->seedUser($requesterId);
+        $orderId = $this->seedCreatedOrder(userId: $ownerId);
+
+        $this->withBearerToken($requesterId)
+            ->postJson("/api/v1/orders/{$orderId}/cancel")
+            ->assertStatus(403);
+    }
+
     public function test_it_returns_409_when_order_cannot_be_cancelled(): void
     {
-        $orderId = $this->seedCreatedOrder('paid');
+        $userId = (string) str()->uuid();
+        $this->seedUser($userId);
+        $orderId = $this->seedCreatedOrder(userId: $userId, status: 'paid');
 
-        $response = $this->postJson("/api/v1/orders/{$orderId}/cancel");
-
-        $response
+        $this->withBearerToken($userId)
+            ->postJson("/api/v1/orders/{$orderId}/cancel")
             ->assertStatus(409)
             ->assertJsonPath('error.message', 'Order cannot be cancelled');
     }
 
-    private function seedCreatedOrder(string $status = 'created'): string
+    private function seedUser(string $userId): void
     {
-        $orderId = (string) str()->uuid();
+        UserModel::query()->create([
+            'id'         => $userId,
+            'name'       => 'Test',
+            'surname'    => 'User',
+            'birth_date' => '1990-01-01',
+            'password'   => 'secret',
+            'active'     => true,
+        ]);
+    }
+
+    private function seedCreatedOrder(string $userId, string $status = 'created'): string
+    {
+        $orderId   = (string) str()->uuid();
         $productId = (string) str()->uuid();
 
         OrderModel::query()->create([
-            'id' => $orderId,
-            'user_id' => (string) str()->uuid(),
-            'status' => $status,
+            'id'      => $orderId,
+            'user_id' => $userId,
+            'status'  => $status,
         ]);
 
         OrderItemModel::query()->create([
-            'id' => (string) str()->uuid(),
-            'order_id' => $orderId,
-            'product_id' => $productId,
-            'quantity' => 1,
-            'unit_price_amount' => 1000,
+            'id'                  => (string) str()->uuid(),
+            'order_id'            => $orderId,
+            'product_id'          => $productId,
+            'quantity'            => 1,
+            'unit_price_amount'   => 1000,
             'unit_price_currency' => 'BRL',
         ]);
 
         StockModel::query()->create([
-            'id' => (string) str()->uuid(),
-            'product_id' => $productId,
-            'quantity_total' => 10,
+            'id'                => (string) str()->uuid(),
+            'product_id'        => $productId,
+            'quantity_total'    => 10,
             'quantity_reserved' => 1,
         ]);
 
         return $orderId;
+    }
+
+    private function withBearerToken(string $userId): static
+    {
+        return $this->withHeaders(['Authorization' => 'Bearer ' . base64_encode($userId)]);
     }
 }

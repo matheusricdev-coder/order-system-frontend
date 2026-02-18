@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Infrastructure\Persistence;
 
 use App\Application\Repositories\Product\ProductRepository;
 use App\Domain\Common\Money;
+use App\Domain\Product\Exceptions\ProductNotFoundException;
 use App\Domain\Product\Product;
 use App\Models\ProductModel;
-use DomainException;
 
 final class EloquentProductRepository implements ProductRepository
 {
@@ -15,7 +17,7 @@ final class EloquentProductRepository implements ProductRepository
         $model = ProductModel::query()->find($id);
 
         if ($model === null) {
-            throw new DomainException('Product not found');
+            throw ProductNotFoundException::withId($id);
         }
 
         return new Product(
@@ -23,7 +25,7 @@ final class EloquentProductRepository implements ProductRepository
             name: (string) $model->name,
             price: new Money((int) $model->price_amount, (string) $model->price_currency),
             categoryId: (string) $model->category_id,
-            companyId: (string) $model->company_id
+            companyId: (string) $model->company_id,
         );
     }
 }

@@ -42,13 +42,13 @@ final class CreateOrderHandlerTest extends TestCase
             $transactionManager
         );
 
-        $order = $handler->handle(new CreateOrderCommand('u-1', [['productId' => 'p-1', 'quantity' => 2]]));
+        $dto = $handler->handle(new CreateOrderCommand('u-1', [['productId' => 'p-1', 'quantity' => 2]]));
 
         self::assertSame(1, $transactionManager->runCalls);
         self::assertSame(['p-1'], $stockRepository->forUpdateLookups);
         self::assertNotNull($orderRepository->savedOrder);
-        self::assertSame('o-1', $order->id());
-        self::assertCount(1, $order->items());
+        self::assertSame('o-1', $dto->id);
+        self::assertCount(1, $dto->items);
     }
 
     public function test_it_rejects_inactive_user(): void

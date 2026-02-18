@@ -14,6 +14,9 @@ use App\Infrastructure\Persistence\EloquentOrderRepository;
 use App\Infrastructure\Persistence\EloquentProductRepository;
 use App\Infrastructure\Persistence\EloquentStockRepository;
 use App\Infrastructure\Persistence\EloquentUserRepository;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
@@ -30,6 +33,8 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        RateLimiter::for('api', static function (Request $request): Limit {
+            return Limit::perMinute(60)->by($request->ip());
+        });
     }
 }

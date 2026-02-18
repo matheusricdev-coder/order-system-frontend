@@ -1,44 +1,62 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domain\Common;
 
 final class Money
 {
-    private int $amount;
-    private string $currency;
-
-    public function __construct(int $amount, string $currency)
-    {
+    public function __construct(
+        private readonly int $amount,
+        private readonly string $currency,
+    ) {
         if ($amount < 0) {
             throw new \DomainException('Amount cannot be negative');
         }
-
-        $this->amount = $amount;
-        $this->currency = $currency;
     }
 
-    public function amount(): int
+    public function amount(): int { return $this->amount; }
+    public function currency(): string { return $this->currency; }
+
+    public function add(self $other): self
     {
-        return $this->amount;
+        $this->ensureSameCurrency($other);
+        return new self($this->amount + $other->amount, $this->currency);
     }
 
-    public function currency(): string
+    public function isGreaterThan(self $other): bool
     {
-        return $this->currency;
+        $this->ensureSameCurrency($other);
+        return $this->amount > $other->amount;
     }
 
-    public function equals(Money $other): bool
+    /** Format as human-readable string (e.g. 1.500,00 BRL). Amount is stored in cents. */
+    public function format(): string
+    {
+        return number_format($this->amount / 100, 2, ',', '.') . ' ' . $this->currency;
+    }
+
+    private function ensureSameCurrency(self $other): void
+    {
+        if ($this->currency !== $other->currency) {
+            throw new \DomainException(
+                sprintf('Currency mismatch: cannot operate on %s and %s', $this->currency, $other->currency)
+            );
+        }
+    }
+
+    public function equals(self $other): bool
     {
         return $this->amount === $other->amount
             && $this->currency === $other->currency;
     }
 
-    public function multiply(int $factor): Money
+    public function multiply(int $factor): self
     {
         if ($factor <= 0) {
-            throw new \DomainException('Factor cannot be negative');
+            throw new \DomainException('Multiply factor must be a positive integer');
         }
 
-        return new Money($this->amount * $factor, $this->currency);
+        return new self($this->amount * $factor, $this->currency);
     }
 }

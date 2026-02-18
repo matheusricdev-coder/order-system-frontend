@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Order\PayOrder;
 
+use App\Application\Common\DomainEventBus;
 use App\Application\Common\TransactionManager;
 use App\Application\Order\DTO\OrderDTO;
 use App\Application\Repositories\Order\OrderRepository;
@@ -17,6 +18,7 @@ final class PayOrderHandler
         private readonly OrderRepository $orderRepository,
         private readonly StockRepository $stockRepository,
         private readonly TransactionManager $transactionManager,
+        private readonly DomainEventBus $domainEventBus,
     ) {}
 
     public function handle(PayOrderCommand $command): OrderDTO
@@ -40,15 +42,7 @@ final class PayOrderHandler
             return $order;
         });
 
-        // Dispatch domain events after transaction commits.
-        // Guard prevents failures in unit tests that run without the full Laravel container.
-        if (function_exists('app') && app()->bound('events')) {
-            foreach ($order->pullDomainEvents() as $event) {
-                event($event);
-            }
-        } else {
-            $order->pullDomainEvents(); // drain the queue
-        }
+        $this->domainEventBus->publish($order->pullDomainEvents());
 
         return OrderDTO::fromDomain($order);
     }

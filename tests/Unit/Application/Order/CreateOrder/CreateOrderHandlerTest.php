@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Order\CreateOrder;
 
+use App\Application\Common\DomainEventBus;
 use App\Application\Common\TransactionManager;
 use App\Application\Order\CreateOrder\CreateOrderCommand;
 use App\Application\Order\CreateOrder\CreateOrderHandler;
@@ -25,6 +26,7 @@ final class CreateOrderHandlerTest extends TestCase
     public function test_it_creates_order_inside_transaction_and_locks_stock(): void
     {
         $transactionManager = new TransactionManagerSpy();
+        $domainEventBus = new DomainEventBusSpy();
         $userRepository = new InMemoryUserRepository(new User('u-1', true));
         $productRepository = new InMemoryProductRepository(
             new Product('p-1', 'Notebook', new Money(5000, 'BRL'), 'c-1', 'co-1')
@@ -39,7 +41,8 @@ final class CreateOrderHandlerTest extends TestCase
             $stockRepository,
             $orderRepository,
             $idGenerator,
-            $transactionManager
+            $transactionManager,
+            $domainEventBus,
         );
 
         $dto = $handler->handle(new CreateOrderCommand('u-1', [['productId' => 'p-1', 'quantity' => 2]]));
@@ -49,6 +52,7 @@ final class CreateOrderHandlerTest extends TestCase
         self::assertNotNull($orderRepository->savedOrder);
         self::assertSame('o-1', $dto->id);
         self::assertCount(1, $dto->items);
+        self::assertCount(1, $domainEventBus->publishedEvents);
     }
 
     public function test_it_rejects_inactive_user(): void
@@ -59,7 +63,8 @@ final class CreateOrderHandlerTest extends TestCase
             new InMemoryStockRepository(new Stock('s-1', 'p-1', 10)),
             new InMemoryOrderRepository(),
             new SequenceIdGenerator(['o-1', 'i-1']),
-            new TransactionManagerSpy()
+            new TransactionManagerSpy(),
+            new DomainEventBusSpy(),
         );
 
         $this->expectException(DomainException::class);
@@ -78,6 +83,17 @@ final class TransactionManagerSpy implements TransactionManager
         $this->runCalls++;
 
         return $fn();
+    }
+}
+
+final class DomainEventBusSpy implements DomainEventBus
+{
+    /** @var object[] */
+    public array $publishedEvents = [];
+
+    public function publish(array $events): void
+    {
+        $this->publishedEvents = [...$this->publishedEvents, ...$events];
     }
 }
 

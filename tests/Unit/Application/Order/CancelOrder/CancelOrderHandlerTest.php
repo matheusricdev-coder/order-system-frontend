@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Order\CancelOrder;
 
+use App\Application\Common\DomainEventBus;
 use App\Application\Common\TransactionManager;
 use App\Application\Order\CancelOrder\CancelOrderCommand;
 use App\Application\Order\CancelOrder\CancelOrderHandler;
@@ -28,16 +29,18 @@ final class CancelOrderHandlerTest extends TestCase
         $stock->reserve(2);
 
         $transactionManager = new TransactionManagerSpy();
-        $orderRepository    = new InMemoryOrderRepository($order);
-        $stockRepository    = new InMemoryStockRepository($stock);
+        $domainEventBus = new DomainEventBusSpy();
+        $orderRepository = new InMemoryOrderRepository($order);
+        $stockRepository = new InMemoryStockRepository($stock);
 
-        $handler = new CancelOrderHandler($orderRepository, $stockRepository, $transactionManager);
-        $dto     = $handler->handle(new CancelOrderCommand(orderId: 'o-1', requesterId: 'u-1'));
+        $handler = new CancelOrderHandler($orderRepository, $stockRepository, $transactionManager, $domainEventBus);
+        $dto = $handler->handle(new CancelOrderCommand(orderId: 'o-1', requesterId: 'u-1'));
 
         self::assertSame(1, $transactionManager->runCalls);
         self::assertSame(['o-1'], $orderRepository->forUpdateLookups);
         self::assertSame(['p-1'], $stockRepository->forUpdateLookups);
         self::assertSame('cancelled', $dto->status);
+        self::assertCount(1, $domainEventBus->publishedEvents);
     }
 
     public function test_it_rejects_order_that_cannot_be_cancelled(): void
@@ -47,7 +50,8 @@ final class CancelOrderHandlerTest extends TestCase
         $handler = new CancelOrderHandler(
             new InMemoryOrderRepository($order),
             new InMemoryStockRepository(new Stock('s-1', 'p-1', 10)),
-            new TransactionManagerSpy()
+            new TransactionManagerSpy(),
+            new DomainEventBusSpy(),
         );
 
         $this->expectException(DomainException::class);
@@ -67,7 +71,8 @@ final class CancelOrderHandlerTest extends TestCase
         $handler = new CancelOrderHandler(
             new InMemoryOrderRepository($order),
             new InMemoryStockRepository($stock),
-            new TransactionManagerSpy()
+            new TransactionManagerSpy(),
+            new DomainEventBusSpy(),
         );
 
         $this->expectException(DomainException::class);
@@ -84,6 +89,17 @@ final class TransactionManagerSpy implements TransactionManager
     {
         $this->runCalls++;
         return $fn();
+    }
+}
+
+final class DomainEventBusSpy implements DomainEventBus
+{
+    /** @var object[] */
+    public array $publishedEvents = [];
+
+    public function publish(array $events): void
+    {
+        $this->publishedEvents = [...$this->publishedEvents, ...$events];
     }
 }
 
@@ -107,11 +123,6 @@ final class InMemoryOrderRepository implements OrderRepository
     public function findByIdForUpdate(string $id): Order
     {
         $this->forUpdateLookups[] = $id;
-        return $this->order;
-    }
-
-    public function current(): Order
-    {
         return $this->order;
     }
 }

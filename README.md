@@ -1,332 +1,245 @@
-Mini Market Place – Architectural Guidelines & System Rules
+# Order System API
 
-This document defines the architectural rules, constraints, and design principles of the system.
+API de marketplace construída em **Laravel 12 + PHP 8.3** com foco em **qualidade arquitetural**, **consistência transacional** e boas práticas de **DDD (Domain-Driven Design)** para cenários reais de pedidos, estoque e autenticação.
 
-All code must comply with these rules.
+> Projeto de portfólio com abordagem profissional para demonstrar domínio de arquitetura, design de software e testes automatizados.
 
-This file exists to protect architectural integrity over time.
+---
 
-1. Architectural Philosophy
+## 📌 Visão Geral
 
-The system must follow:
+O projeto implementa um núcleo de e-commerce com:
 
-Clean Architecture
+- Catálogo público de produtos, categorias e empresas.
+- Gestão de pedidos com ciclo de vida explícito (`created -> paid/cancelled`).
+- Controle de estoque com **reserva**, **consumo** e **liberação**.
+- API autenticada com **Laravel Sanctum**.
+- Observabilidade básica por **Correlation ID**.
+- Especificação OpenAPI disponível em `docs/openapi.yaml`.
 
-Hexagonal Architecture (Ports & Adapters)
+### Principais objetivos técnicos
 
-Tactical DDD
+- Evitar inconsistências de estado com uso de transações e lock pessimista.
+- Separar regras de negócio do framework por meio de camadas e contratos.
+- Expor um código legível e sustentável para evolução do produto.
 
-Explicit Transaction Boundaries
+---
 
-Strong Consistency over Availability
+## 🧱 Arquitetura
 
-The primary goal is correctness and integrity, not rapid feature growth.
+O código segue uma combinação de:
 
-2. Layering Rules
+- **Clean Architecture**
+- **Hexagonal (Ports & Adapters)**
+- **DDD tático**
 
-The system is divided into four logical layers:
+### Camadas
 
-Domain
-Application
-Infrastructure
-Interface
+- **Domain (`app/Domain`)**: entidades, value objects, enums, eventos e invariantes de negócio.
+- **Application (`app/Application`)**: casos de uso (handlers), comandos/queries, portas (interfaces) e orquestração transacional.
+- **Infrastructure (`app/Infrastructure`)**: repositórios Eloquent, barramento de eventos e transações Laravel.
+- **Interface (`app/Http`, `routes`)**: controllers, requests, middleware e endpoints REST.
 
+### Direção de dependências
 
-Dependency direction must always point inward:
-
-Interface → Application → Domain
-Infrastructure → Application → Domain
-
-
-The Domain layer must never depend on:
-
-Laravel
-
-Eloquent
-
-Database
-
-Framework-specific tools
-
-Violation of this rule invalidates the architecture.
-
-3. Domain Layer Rules
-
-The Domain layer:
-
-Contains business rules
-
-Enforces invariants
-
-Protects consistency
-
-Is framework-independent
-
-3.1 Domain Constraints
-
-No framework imports
-
-No database logic
-
-No HTTP logic
-
-No logging logic
-
-Only pure business logic.
-
-3.2 Aggregates
-
-Aggregates must:
-
-Protect invariants
-
-Expose intention-revealing methods
-
-Prevent invalid state transitions
-
-State mutation must be controlled and explicit.
-
-3.3 Value Objects
-
-Value Objects:
-
-Must be immutable
-
-Must not expose identity
-
-Must encapsulate behavior
-
-4. Application Layer Rules
-
-The Application layer:
-
-Orchestrates use cases
-
-Defines ports (interfaces)
-
-Controls transaction boundaries
-
-It must not:
-
-Contain business rules
-
-Depend directly on Eloquent
-
-Contain persistence logic
-
-4.1 Use Case Structure
-
-Each use case must:
-
-Be isolated in its own class
-
-Execute inside a transaction
-
-Coordinate domain entities
-
-5. Infrastructure Layer Rules
-
-Infrastructure implements adapters.
-
-It is allowed to:
-
-Use Laravel
-
-Use Eloquent
-
-Use database transactions
-
-Apply pessimistic locking
-
-It is not allowed to:
-
-Introduce business rules
-
-Modify domain invariants
-
-Bypass aggregate logic
-
-6. Transaction Rules
-
-All write operations must:
-
-Execute inside a transaction
-
-Be atomic
-
-Avoid partial writes
-
-Transaction boundaries belong in the Application layer via abstraction.
-
-7. Concurrency Rules
-
-All critical mutations must:
-
-Use pessimistic locking
-
-Lock the affected rows
-
-Prevent race conditions
-
-Concurrency protection is mandatory for:
-
-Stock reservation
-
-Stock consumption
-
-Order state transitions
-
-8. Order Lifecycle Rules
-
-Order must:
-
-Start in CREATED
-
-Transition to PAID or CANCELLED
-
-Never revert states
-
-Never allow invalid transitions
-
-Stock must:
-
-Never go negative
-
-Never allow over-reservation
-
-Never allow consumption without reservation
-
-9. Repository Rules
-
-Repositories:
-
-Must be defined as interfaces in Application
-
-Must be implemented in Infrastructure
-
-Must hydrate domain aggregates correctly
-
-Repositories must not expose Eloquent models to the Application or Domain layers.
-
-10. ID Strategy
-
-All primary identifiers must:
-
-Be UUID
-
-Be generated through abstraction
-
-Never be generated directly in Infrastructure logic
-
-11. Non-Functional Requirements
-
-The system must guarantee:
-
-Strong consistency
-
-Deterministic state transitions
-
-Concurrency safety
-
-Clear separation of concerns
-
-Performance optimizations must not violate consistency rules.
-
-12. Extension Rules
-
-Future features must:
-
-Respect layer boundaries
-
-Preserve transaction safety
-
-Avoid leaking framework concerns into Domain
-
-Preserve aggregate integrity
-
-If a feature requires breaking these rules, architecture must be reconsidered.
-
-13. What This System Is Not
-
-Not a CRUD demo
-
-Not framework-driven design
-
-Not anemic domain model
-
-Not eventual-consistency-based
-
-It is intentionally consistency-first.
-
-14. Architectural Integrity Policy
-
-If future changes:
-
-Introduce domain logic into Infrastructure
-
-Break transaction boundaries
-
-Allow direct database manipulation bypassing aggregates
-
-They must be rejected.
-
-Architecture is a constraint, not a suggestion.
-## API Integration (Frontend-ready)
-
-### Base URL and versioning
-- Base: `/api/v1`
-- OpenAPI contract: `docs/openapi.yaml`
-
-### Core read endpoints
-- `GET /products?categoryId=&companyId=&q=&page=`
-- `GET /products/{id}`
-- `GET /categories`
-- `GET /companies/{id}`
-- `GET /companies/{id}/products`
-- `GET /orders/{id}`
-- `GET /orders?userId=&status=&page=`
-- `GET /stocks/{productId}` and `GET /products/{id}/stock`
-
-### Auth endpoints (mock bearer for quick integration)
-- `POST /auth/login`
-- `POST /auth/logout`
-- `GET /me`
-
-### Error format (consistent)
-```json
-{
-  "error": {
-    "code": "ORDER_CANNOT_BE_PAID",
-    "message": "Order cannot be paid",
-    "correlation_id": "9f198f78-4b76-48ea-8d59-76019c07a70c"
-  }
-}
+```text
+Interface -> Application -> Domain
+Infrastructure -> Application -> Domain
 ```
 
-### cURL examples
+A camada de domínio não depende de Laravel/Eloquent.
+
+---
+
+## ✅ Regras de Negócio Implementadas
+
+### Pedido (Order)
+
+- Um pedido inicia em `created`.
+- Só pode transitar para `paid` ou `cancelled`.
+- Transições inválidas geram exceção de domínio.
+- Total é calculado com `Money` (valor em centavos + moeda).
+
+### Estoque (Stock)
+
+- Nunca pode ficar negativo.
+- Reserva exige disponibilidade.
+- Consumo só ocorre sobre quantidade previamente reservada.
+- Cancelamento de pedido libera reserva.
+
+### Usuário
+
+- Usuário inativo não pode criar pedidos.
+- Endpoints de pedidos exigem autenticação.
+
+---
+
+## 🗂️ Estrutura de Pastas (resumo)
+
+```text
+app/
+├── Domain/                # Entidades, VO, eventos, regras
+├── Application/           # Casos de uso, DTOs, portas
+├── Infrastructure/        # Adapters concretos (Eloquent, transações, event bus)
+└── Http/                  # API controllers, requests e middleware
+
+database/
+├── migrations/            # Schema, constraints e relacionamentos
+└── seeders/               # Dados iniciais de catálogo/admin
+
+tests/
+├── Unit/                  # Testes de domínio e aplicação
+└── Feature/               # Testes HTTP end-to-end
+
+docs/
+└── openapi.yaml           # Contrato da API
+```
+
+---
+
+## 🚀 Como Executar Localmente
+
+## Pré-requisitos
+
+- PHP 8.3+
+- Composer
+- Banco de dados (SQLite/MySQL/PostgreSQL)
+
+## Passo a passo
+
+1. Clone o repositório:
+
 ```bash
-curl -X GET 'http://localhost:8000/api/v1/products?q=cafe&page=1'
-
-curl -X GET 'http://localhost:8000/api/v1/orders?userId=<UUID>&status=created&page=1'
-
-curl -X POST 'http://localhost:8000/api/v1/auth/login' \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"ana@example.com","password":"secret123"}'
-
-curl -X GET 'http://localhost:8000/api/v1/me' \
-  -H 'Authorization: Bearer <ACCESS_TOKEN>'
+git clone <url-do-repo>
+cd order-system
 ```
 
-14. API Authentication (Laravel Sanctum)
+2. Configure ambiente:
 
-The API now uses Laravel Sanctum personal access tokens (Bearer token).
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-- Login: `POST /api/v1/auth/login` with `email` and `password`.
-- Response includes `accessToken` and `tokenType` (`Bearer`).
-- Protected routes require `Authorization: Bearer <token>`.
-- Logout: `POST /api/v1/auth/logout` revokes only the current access token.
-- Current user: `GET /api/v1/me`.
+3. Instale dependências:
 
-Migration note:
-- Run migrations to create `personal_access_tokens` before authenticating with tokens.
+```bash
+composer install
+```
+
+4. Rode migrations e seeders:
+
+```bash
+php artisan migrate --seed
+```
+
+5. Suba o servidor:
+
+```bash
+php artisan serve
+```
+
+API disponível em: `http://127.0.0.1:8000/api/v1`
+
+---
+
+## 🔐 Autenticação
+
+Fluxo padrão:
+
+1. `POST /api/v1/auth/register`
+2. `POST /api/v1/auth/login`
+3. Usar token Bearer retornado no header:
+
+```http
+Authorization: Bearer <token>
+```
+
+Endpoints protegidos:
+
+- `/api/v1/orders/*`
+- `/api/v1/me`
+- `/api/v1/me/login-streak`
+- `/api/v1/auth/logout`
+
+---
+
+## 📚 Endpoints Principais
+
+### Catálogo (público)
+
+- `GET /api/v1/products`
+- `GET /api/v1/products/{id}`
+- `GET /api/v1/categories`
+- `GET /api/v1/companies/{id}`
+- `GET /api/v1/companies/{id}/products`
+- `GET /api/v1/stocks/{productId}`
+- `GET /api/v1/products/{id}/stock`
+
+### Pedidos (autenticado)
+
+- `POST /api/v1/orders`
+- `POST /api/v1/orders/{id}/pay`
+- `POST /api/v1/orders/{id}/cancel`
+- `GET /api/v1/orders/{id}`
+- `GET /api/v1/orders`
+
+### Infra
+
+- `GET /api/health`
+
+---
+
+## 🧪 Qualidade e Testes
+
+A suíte cobre:
+
+- Regras de domínio (`Order`, `OrderItem`, `Stock`, `Money`, `User`).
+- Casos de uso da aplicação (create/pay/cancel/list/get).
+- Fluxos HTTP críticos (auth, catálogo e pedidos).
+
+Comandos úteis:
+
+```bash
+php artisan test
+./vendor/bin/phpunit
+```
+
+---
+
+## 🧭 Observabilidade e Resiliência
+
+- Middleware de **Correlation ID** (`X-Correlation-Id`) para rastreabilidade.
+- Mapeamento consistente de exceções para respostas JSON.
+- Códigos HTTP alinhados ao tipo de erro (validação, autorização, domínio etc.).
+
+---
+
+## 🛠️ Deploy
+
+O repositório possui configurações para plataformas modernas de deploy:
+
+- `Dockerfile`
+- `railway.json`
+- `fly.toml`
+- `nixpacks.toml`
+
+---
+
+## 💼 Valor para Portfólio
+
+Este projeto destaca competências valorizadas por recrutadores:
+
+- Arquitetura orientada a domínio.
+- Escrita de código com separação de responsabilidades.
+- Modelagem de regras críticas com invariantes.
+- Prevenção de race conditions em operações sensíveis.
+- Testes automatizados em múltiplas camadas.
+- Organização para evolução (OpenAPI + estrutura modular).
+
+---
+
+## 📄 Licença
+
+Defina aqui a licença desejada (ex.: MIT) caso o projeto seja público.
 

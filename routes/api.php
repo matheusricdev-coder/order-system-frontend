@@ -42,3 +42,9 @@ Route::prefix('v1')->middleware('throttle:api')->group($apiV1);
 
 // Backward compatibility while clients migrate to /api/v1.
 Route::middleware('throttle:api')->group($apiV1);
+
+// Health check — used by Railway and uptime monitors.
+Route::get('/health', static fn () => response()->json([
+    'status'    => 'ok',
+    'timestamp' => now()->toISOString(),
+]));

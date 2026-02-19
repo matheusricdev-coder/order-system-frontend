@@ -64,46 +64,7 @@ jobs:
           DB_PASSWORD: root
 
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 2 — Frontend type-check + build
-  # ───────────────────────────────────────────────────────────────────────────
-  frontend-build:
-    name: 🏗️ Frontend Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: lovable-orders
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: lovable-orders/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Build
-        run: npm run build
-        env:
-          # Placeholder URL — real value comes from Vercel env vars in production
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: lovable-orders/dist
-          retention-days: 1
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # JOB 3 — Deploy backend → Fly.io  (main only)
+  # JOB 2 — Deploy backend → Fly.io  (main only)
   # ───────────────────────────────────────────────────────────────────────────
   deploy-backend:
     name: 🚀 Deploy Backend → Fly.io
@@ -121,28 +82,3 @@ jobs:
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # JOB 4 — Deploy frontend → Vercel  (main only)
-  # ───────────────────────────────────────────────────────────────────────────
-  deploy-frontend:
-    name: 🚀 Deploy Frontend → Vercel
-    needs: [frontend-build]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Deploy to Vercel
-        run: |
-          vercel --cwd lovable-orders \
-                 --token=${{ secrets.VERCEL_TOKEN }} \
-                 --prod \
-                 --yes
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

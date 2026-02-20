@@ -220,11 +220,11 @@ php artisan test
 
 ## 🛠️ Deploy
 
-O repositório possui configurações para plataformas modernas de deploy:
+O repositório possui configurações para deploy no **Fly.io** (`fly.toml`, `Dockerfile`).
 
-- `Dockerfile`
-- `railway.json`
-- `fly.toml`
+URL de produção: `https://ordem-system-api.fly.dev`
+
+Outros arquivos de configuração presentes:
 - `nixpacks.toml`
 
 ## 💻 Frontend

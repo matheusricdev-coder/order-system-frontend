@@ -1,6 +1,8 @@
-# Order System Frontend
+# Order System — Frontend
 
-Interface web moderna para um marketplace com autenticação, catálogo de produtos, carrinho persistente e criação de pedidos. Este projeto foi construído com foco em experiência de usuário, boas práticas de frontend e arquitetura escalável para integração com APIs reais.
+Interface web moderna para um marketplace com autenticação, catálogo de produtos, carrinho persistente e criação de pedidos. Construída com foco em experiência de usuário, boas práticas de frontend e arquitetura escalável para integração com APIs reais.
+
+> **Demo ao vivo:** [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app)
 
 ## Visão Geral
 
@@ -78,7 +80,12 @@ src/
 A aplicação usa variável de ambiente para conexão com backend:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:3000
+# Para produção — aponta para a API hospedada
+VITE_API_BASE_URL=https://sua-api.railway.app
+
+# Para desenvolvimento local — deixe vazio para usar o proxy do Vite
+# (o Vite redireciona /api/* para http://127.0.0.1:8000 automaticamente)
+VITE_API_BASE_URL=
 ```
 
 ### Endpoints esperados
@@ -109,12 +116,10 @@ VITE_API_BASE_URL=http://localhost:3000
 # 1) Instalar dependências
 npm install
 
-# 2) Criar variáveis de ambiente
-cat > .env <<'ENV'
-VITE_API_BASE_URL=http://localhost:3000
-ENV
+# 2) Criar arquivo de variáveis de ambiente
+cp .env.example .env 2>/dev/null || echo "VITE_API_BASE_URL=" > .env
 
-# 3) Iniciar em modo desenvolvimento
+# 3) Iniciar em modo desenvolvimento (backend deve estar rodando em :8000)
 npm run dev
 ```
 
@@ -165,4 +170,4 @@ Desenvolvido como projeto de portfolio para demonstrar capacidade em:
 
 ---
 
-Se quiser, posso também preparar uma versão deste README em inglês (focada para recrutadores internacionais) e uma seção “Case Study” com decisões técnicas e trade-offs.
+*Projeto de portfólio — Backend: [ordem-system](https://github.com/seu-usuario/ordem-system) · Demo: [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app)*

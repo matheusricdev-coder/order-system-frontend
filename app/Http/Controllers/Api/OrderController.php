@@ -20,6 +20,7 @@ use App\Http\Requests\CreateOrderRequest;
 use App\Models\UserModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 final class OrderController extends Controller
 {
@@ -92,29 +93,44 @@ final class OrderController extends Controller
                 orderId: $id,
                 requesterId: $authUser->id,
             )),
+            'meta' => ['correlationId' => $this->correlationId($request)],
         ]);
     }
+
+    /** @var list<string> */
+    private const ALLOWED_STATUSES = ['created', 'paid', 'cancelled'];
+
+    private const PER_PAGE_MAX = 100;
+    private const PER_PAGE_DEFAULT = 15;
 
     public function index(
         Request $request,
         ListOrdersHandler $handler,
     ): JsonResponse {
+        $request->validate([
+            'status'  => ['nullable', Rule::in(self::ALLOWED_STATUSES)],
+            'perPage' => ['nullable', 'integer', 'min:1', 'max:' . self::PER_PAGE_MAX],
+            'page'    => ['nullable', 'integer', 'min:1'],
+        ]);
+
         $authUser = $this->authUser($request);
+        $perPage  = min((int) $request->query('perPage', self::PER_PAGE_DEFAULT), self::PER_PAGE_MAX);
 
         $result = $handler->handle(new ListOrdersQuery(
             requesterId: $authUser->id,
             status: $request->query('status'),
-            perPage: (int) $request->query('perPage', 15),
+            perPage: $perPage,
             page: (int) $request->query('page', 1),
         ));
 
         return response()->json([
             'data' => $result['data'],
             'meta' => [
-                'total'       => $result['total'],
-                'perPage'     => $result['per_page'],
-                'currentPage' => $result['current_page'],
-                'lastPage'    => $result['last_page'],
+                'total'         => $result['total'],
+                'perPage'       => $result['per_page'],
+                'currentPage'   => $result['current_page'],
+                'lastPage'      => $result['last_page'],
+                'correlationId' => $this->correlationId($request),
             ],
         ]);
     }

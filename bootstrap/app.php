@@ -1,8 +1,10 @@
 <?php
 
+use App\Domain\Order\Exceptions\InvalidOrderTransitionException;
 use App\Domain\Order\Exceptions\OrderNotFoundException;
 use App\Domain\Order\Exceptions\UnauthorizedOrderException;
 use App\Domain\Product\Exceptions\ProductNotFoundException;
+use App\Domain\Stock\Exceptions\InsufficientStockException;
 use App\Domain\Stock\Exceptions\StockNotFoundException;
 use App\Domain\User\Exceptions\InactiveUserException;
 use App\Domain\User\Exceptions\UserNotFoundException;
@@ -59,8 +61,21 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            $message = $e->getMessage() ?: 'Request failed';
-            $code    = strtoupper(preg_replace('/[^A-Z0-9]+/i', '_', $message));
+            /** @var array<class-string<\Throwable>, string> */
+            $codeMap = [
+                OrderNotFoundException::class          => 'ORDER_NOT_FOUND',
+                UserNotFoundException::class           => 'USER_NOT_FOUND',
+                ProductNotFoundException::class        => 'PRODUCT_NOT_FOUND',
+                StockNotFoundException::class          => 'STOCK_NOT_FOUND',
+                UnauthorizedOrderException::class      => 'ORDER_ACCESS_DENIED',
+                InactiveUserException::class           => 'USER_INACTIVE',
+                InvalidOrderTransitionException::class => 'INVALID_ORDER_TRANSITION',
+                InsufficientStockException::class      => 'INSUFFICIENT_STOCK',
+                AuthenticationException::class         => 'UNAUTHENTICATED',
+            ];
+
+            $code    = $codeMap[$e::class] ?? 'INTERNAL_ERROR';
+            $message = ($status < 500) ? $e->getMessage() : 'An unexpected error occurred';
 
             return response()->json([
                 'error' => [

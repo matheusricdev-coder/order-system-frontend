@@ -40,7 +40,9 @@ $apiV1 = static function (): void {
 
 Route::prefix('v1')->middleware('throttle:api')->group($apiV1);
 
-// Backward compatibility while clients migrate to /api/v1.
+// Backward-compatibility alias: routes without /v1 prefix are deprecated.
+// Planned removal: once all consumers have migrated to /api/v1.
+// @deprecated Use /api/v1/* instead.
 Route::middleware('throttle:api')->group($apiV1);
 
 // Health check — used by Railway and uptime monitors.

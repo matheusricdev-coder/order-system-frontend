@@ -69,7 +69,23 @@ return new class extends Migration {
     {
         $driver = DB::getDriverName();
 
-        if ($driver !== 'sqlite') {
+        // PostgreSQL uses DROP CONSTRAINT; MySQL/MariaDB 8.0.16+ uses DROP CHECK.
+        // SQLite does not support CHECK constraints via ALTER TABLE, so no action needed.
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_valid_chk');
+            DB::statement(
+                'ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_unit_price_amount_non_negative_chk'
+            );
+            DB::statement(
+                'ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_quantity_positive_chk'
+            );
+            DB::statement(
+                'ALTER TABLE stocks DROP CONSTRAINT IF EXISTS stocks_quantity_reserved_non_negative_chk'
+            );
+            DB::statement(
+                'ALTER TABLE stocks DROP CONSTRAINT IF EXISTS stocks_quantity_total_non_negative_chk'
+            );
+        } elseif ($driver === 'mysql' || $driver === 'mariadb') {
             DB::statement('ALTER TABLE orders DROP CHECK orders_status_valid_chk');
             DB::statement('ALTER TABLE order_items DROP CHECK order_items_unit_price_amount_non_negative_chk');
             DB::statement('ALTER TABLE order_items DROP CHECK order_items_quantity_positive_chk');

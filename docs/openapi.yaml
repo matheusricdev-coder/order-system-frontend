@@ -2,12 +2,16 @@ openapi: 3.0.3
 info:
   title: Order System API
   version: 1.0.0
+  description: >
+    Mini-marketplace API built with Laravel + DDD/Clean Architecture.
+    All order endpoints require a Bearer token obtained via /auth/login.
 servers:
   - url: /api/v1
 paths:
   /products:
     get:
       summary: List products
+      tags: [Catalog]
       parameters:
         - in: query
           name: categoryId
@@ -20,12 +24,13 @@ paths:
           schema: { type: string }
         - in: query
           name: page
-          schema: { type: integer }
+          schema: { type: integer, minimum: 1, default: 1 }
       responses:
         '200': { description: Product list }
   /products/{id}:
     get:
       summary: Get product by id
+      tags: [Catalog]
       parameters:
         - in: path
           name: id
@@ -33,14 +38,21 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         '200': { description: Product detail }
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /categories:
     get:
       summary: List categories
+      tags: [Catalog]
       responses:
         '200': { description: Category list }
   /companies/{id}:
     get:
       summary: Get company profile
+      tags: [Catalog]
       parameters:
         - in: path
           name: id
@@ -48,9 +60,15 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         '200': { description: Company detail }
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /companies/{id}/products:
     get:
       summary: List products by company
+      tags: [Catalog]
       parameters:
         - in: path
           name: id
@@ -58,68 +76,59 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         '200': { description: Product list by company }
-  /orders:
+  /stocks/{productId}:
     get:
-      security:
-        - bearerAuth: []
-      summary: List orders
+      summary: Get stock by product id
+      tags: [Catalog]
       parameters:
-        - in: query
-          name: userId
+        - in: path
+          name: productId
+          required: true
           schema: { type: string, format: uuid }
-        - in: query
-          name: status
-          schema: { type: string }
-        - in: query
-          name: page
-          schema: { type: integer }
       responses:
-        '200': { description: Order list }
-    post:
-      security:
-        - bearerAuth: []
-      summary: Create order
-      responses:
-        '201': { description: Created }
-  /orders/{id}:
+        '200': { description: Stock detail }
+        '404':
+          description: Stock not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /products/{id}/stock:
     get:
-      security:
-        - bearerAuth: []
-      summary: Get order detail
+      summary: Get stock by product endpoint
+      tags: [Catalog]
       parameters:
         - in: path
           name: id
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200': { description: Order detail }
-  /orders/{id}/pay:
-    post:
-      security:
-        - bearerAuth: []
-      summary: Pay order
-      responses:
-        '200': { description: Paid }
-  /orders/{id}/cancel:
-    post:
-      security:
-        - bearerAuth: []
-      summary: Cancel order
-      responses:
-        '200': { description: Cancelled }
-  /stocks/{productId}:
-    get:
-      summary: Get stock by product id
-      responses:
         '200': { description: Stock detail }
-  /products/{id}/stock:
-    get:
-      summary: Get stock by product endpoint
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:     { type: string }
+                email:    { type: string, format: email }
+                password: { type: string, minLength: 8 }
       responses:
-        '200': { description: Stock detail }
+        '201': { description: User created and token returned }
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /auth/login:
     post:
       summary: Login and receive bearer token
+      tags: [Auth]
       requestBody:
         required: true
         content:
@@ -128,24 +137,216 @@ paths:
               type: object
               required: [email, password]
               properties:
-                email: { type: string, format: email }
+                email:    { type: string, format: email }
                 password: { type: string }
       responses:
-        '200': { description: Authenticated }
+        '200': { description: Authenticated — returns bearer token }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /auth/logout:
     post:
+      summary: Logout current user
+      tags: [Auth]
       security:
         - bearerAuth: []
-      summary: Logout current user
       responses:
         '204': { description: Logged out }
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /me:
     get:
+      summary: Return authenticated user profile
+      tags: [Auth]
       security:
         - bearerAuth: []
-      summary: Return authenticated user
       responses:
         '200': { description: Authenticated user }
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /me/login-streak:
+    get:
+      summary: Return daily login streak for authenticated user
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Login streak data }
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /orders:
+    get:
+      summary: List orders for authenticated user
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [created, paid, cancelled]
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: perPage
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+      responses:
+        '200': { description: Paginated order list }
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: Invalid filter value
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    post:
+      summary: Create order
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [productId, quantity]
+                    properties:
+                      productId: { type: string, format: uuid }
+                      quantity:  { type: integer, minimum: 1 }
+      responses:
+        '201': { description: Order created }
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Domain error (e.g. insufficient stock)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /orders/{id}:
+    get:
+      summary: Get order detail
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Order detail }
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /orders/{id}/pay:
+    post:
+      summary: Pay order
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Order paid }
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Invalid transition (e.g. already paid or cancelled)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /orders/{id}/cancel:
+    post:
+      summary: Cancel order
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Order cancelled }
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Invalid transition
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /health:
+    get:
+      summary: Health check — used by Railway and uptime monitors
+      tags: [Infra]
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:    { type: string, example: ok }
+                  timestamp: { type: string, format: date-time }
 components:
   securitySchemes:
     bearerAuth:
@@ -158,7 +359,19 @@ components:
       properties:
         error:
           type: object
+          required: [code, message]
           properties:
-            code: { type: string }
-            message: { type: string }
+            code:
+              type: string
+              example: ORDER_NOT_FOUND
+              description: >
+                Stable machine-readable error code. Known values:
+                ORDER_NOT_FOUND, USER_NOT_FOUND, PRODUCT_NOT_FOUND,
+                STOCK_NOT_FOUND, ORDER_ACCESS_DENIED, USER_INACTIVE,
+                INVALID_ORDER_TRANSITION, INSUFFICIENT_STOCK,
+                UNAUTHENTICATED, VALIDATION_ERROR, INTERNAL_ERROR.
+            message:    { type: string }
             correlation_id: { type: string }
+            details:
+              type: object
+              description: Field-level validation errors (present on VALIDATION_ERROR only)

@@ -4,6 +4,8 @@ API de marketplace construída em **Laravel 12 + PHP 8.3** com foco em **qualida
 
 > Projeto de portfólio com abordagem profissional para demonstrar domínio de arquitetura, design de software e testes automatizados.
 
+> **Demo ao vivo:** [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app) · Frontend: [lovable-orders](https://github.com/seu-usuario/lovable-orders)
+
 ---
 
 ## 📌 Visão Geral
@@ -99,35 +101,36 @@ docs/
 
 ## 🚀 Como Executar Localmente
 
-## Pré-requisitos
+### Pré-requisitos
 
 - PHP 8.3+
 - Composer
-- Banco de dados (SQLite/MySQL/PostgreSQL)
+- Banco de dados (SQLite, MySQL ou PostgreSQL)
+- Node.js 18+ (apenas para build de assets)
 
-## Passo a passo
+### Passo a passo
 
 1. Clone o repositório:
 
 ```bash
-git clone <url-do-repo>
-cd order-system
+git clone https://github.com/seu-usuario/ordem-system.git
+cd ordem-system
 ```
 
-2. Configure ambiente:
+2. Instale dependências PHP:
+
+```bash
+composer install
+```
+
+3. Configure ambiente:
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-3. Instale dependências:
-
-```bash
-composer install
-```
-
-4. Rode migrations e seeders:
+4. Configure o banco de dados no `.env` (SQLite já vem pré-configurado) e rode migrations:
 
 ```bash
 php artisan migrate --seed
@@ -224,4 +227,10 @@ O repositório possui configurações para plataformas modernas de deploy:
 - `fly.toml`
 - `nixpacks.toml`
 
+## 💻 Frontend
+
+Este projeto possui uma interface web completa integrada a esta API.
+
+- **Demo:** [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app)
+- **Repositório:** [lovable-orders](https://github.com/seu-usuario/lovable-orders) — React 18 + TypeScript + Tailwind
 

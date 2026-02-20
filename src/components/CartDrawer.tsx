@@ -18,6 +18,8 @@ const CartDrawer = () => {
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const handleCheckout = async () => {
+    if (items.length === 0) return;
+
     if (!isAuthenticated) {
       closeCart();
       navigate("/login");

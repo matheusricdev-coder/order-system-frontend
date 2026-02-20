@@ -28,7 +28,7 @@ const Home = () => {
     q: search || undefined,
     perPage: 12,
   });
-  const { data: streakRes } = useLoginStreak();
+  const { data: streakRes } = useLoginStreak(isAuthenticated);
 
   const categories = categoriesRes?.data ?? [];
   const products = productsRes?.data ?? [];

@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { authApi, catalogApi, type ProductFilters } from '@/lib/api';
 
-export function useLoginStreak() {
+export function useLoginStreak(enabled = true) {
   return useQuery({
     queryKey: ['login-streak'],
     queryFn: () => authApi.loginStreak(),
+    enabled,
     staleTime: 1000 * 60 * 5,
   });
 }

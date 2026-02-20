@@ -1,74 +1,168 @@
-# Welcome to your Lovable project
+# Order System Frontend
 
-## Project info
+Interface web moderna para um marketplace com autenticação, catálogo de produtos, carrinho persistente e criação de pedidos. Este projeto foi construído com foco em experiência de usuário, boas práticas de frontend e arquitetura escalável para integração com APIs reais.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Visão Geral
 
-## How can I edit this code?
+O **Order System Frontend** simula um fluxo real de e-commerce:
 
-There are several ways of editing your application.
+- Navegação por catálogo com filtros por categoria e busca.
+- Página de produto com galeria e ação de compra.
+- Carrinho lateral com persistência no `localStorage`.
+- Login/cadastro com integração de autenticação via token.
+- Criação de pedidos conectada ao backend.
+- Gamificação com barra de login diário e saldo de moedas.
 
-**Use Lovable**
+Esse projeto é ideal para portfolio porque demonstra:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Organização por domínio (`pages`, `components`, `contexts`, `hooks`, `lib`).
+- Consumo de API com tratamento de erros.
+- Gerenciamento de estado local + estado assíncrono (React Query).
+- UI consistente com Tailwind + componentes reutilizáveis.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Stack Técnica
 
-**Use your preferred IDE**
+- **React 18** + **TypeScript**
+- **Vite**
+- **React Router DOM**
+- **TanStack React Query**
+- **Tailwind CSS**
+- **shadcn/ui** + **Radix UI**
+- **Vitest** + Testing Library
+- **ESLint**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Arquitetura do Projeto
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+src/
+  components/      # componentes visuais e blocos de UI
+  contexts/        # estado global (auth e carrinho)
+  hooks/           # hooks de integração com API e regras de negócio
+  lib/             # cliente HTTP e utilitários
+  pages/           # telas principais da aplicação
+  types/           # contratos tipados da API
+  test/            # setup e testes
+```
 
-Follow these steps:
+## Funcionalidades Implementadas
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 1) Catálogo e Busca
+- Listagem de produtos com skeleton loading.
+- Filtro por categoria.
+- Busca textual por produtos.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 2) Produto
+- Galeria com imagem principal e miniaturas.
+- Fallback visual quando não há imagem.
+- Adição ao carrinho com feedback de toast.
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 3) Carrinho
+- Carrinho lateral (drawer) acessível em toda a aplicação.
+- Incremento/decremento de quantidade.
+- Remoção de itens.
+- Cálculo automático de subtotal.
+- Persistência em `localStorage`.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 4) Autenticação
+- Login e cadastro com validações de formulário.
+- Armazenamento de token.
+- Reidratação de sessão ao abrir a aplicação.
+- Logout com limpeza de sessão local.
+
+### 5) Pedidos
+- Criação de pedido a partir do carrinho.
+- Integração preparada para listagem, pagamento e cancelamento.
+
+## Integração com API
+
+A aplicação usa variável de ambiente para conexão com backend:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+### Endpoints esperados
+
+- `POST /auth/login`
+- `POST /auth/register`
+- `POST /auth/logout`
+- `GET /me`
+- `GET /me/login-streak`
+- `GET /categories`
+- `GET /products`
+- `GET /products/:id`
+- `POST /orders`
+- `GET /orders`
+- `GET /orders/:id`
+- `POST /orders/:id/pay`
+- `POST /orders/:id/cancel`
+
+## Como Rodar Localmente
+
+### Pré-requisitos
+- Node.js 18+
+- npm 9+
+
+### Passo a passo
+
+```bash
+# 1) Instalar dependências
+npm install
+
+# 2) Criar variáveis de ambiente
+cat > .env <<'ENV'
+VITE_API_BASE_URL=http://localhost:3000
+ENV
+
+# 3) Iniciar em modo desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+A aplicação ficará disponível em `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Scripts Disponíveis
 
-**Use GitHub Codespaces**
+```bash
+npm run dev         # ambiente de desenvolvimento
+npm run build       # build de produção
+npm run preview     # preview local do build
+npm run lint        # validação estática com ESLint
+npm run test        # testes com Vitest
+npm run test:watch  # testes em modo observação
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Qualidade e Boas Práticas
 
-## What technologies are used for this project?
+- Tipagem forte para payloads e respostas de API.
+- Separação de responsabilidade entre UI, hooks e camada HTTP.
+- Tratamento de erro padronizado com classe `ApiError`.
+- Feedback visual para estados de loading/erro/sucesso.
 
-This project is built with:
+## Melhorias Recomendadas (Roadmap)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Cobertura de testes para fluxos críticos (auth, carrinho e checkout).
+- Implementação de favoritos (botão já presente no card).
+- Controle de paginação do catálogo no frontend.
+- Estratégia de i18n para múltiplos idiomas.
+- Métricas de performance (Web Vitals) e monitoramento de erros.
 
-## How can I deploy this project?
+## Capturas de Tela
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+> Sugestão: adicione imagens reais do projeto em execução para reforçar o impacto do portfolio.
 
-## Can I connect a custom domain to my Lovable project?
+- Home (catálogo + filtros)
+- Página de produto
+- Tela de login/cadastro
+- Carrinho aberto
 
-Yes, you can!
+## Autor
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Desenvolvido como projeto de portfolio para demonstrar capacidade em:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
->> Trigger CI <<
+- Frontend moderno com React + TypeScript
+- Integração profissional com APIs
+- Estrutura de projeto pronta para evolução em ambiente real
+
+---
+
+Se quiser, posso também preparar uma versão deste README em inglês (focada para recrutadores internacionais) e uma seção “Case Study” com decisões técnicas e trade-offs.

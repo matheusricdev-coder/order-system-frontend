@@ -224,22 +224,4 @@ O repositório possui configurações para plataformas modernas de deploy:
 - `fly.toml`
 - `nixpacks.toml`
 
----
-
-## 💼 Valor para Portfólio
-
-Este projeto destaca competências valorizadas por recrutadores:
-
-- Arquitetura orientada a domínio.
-- Escrita de código com separação de responsabilidades.
-- Modelagem de regras críticas com invariantes.
-- Prevenção de race conditions em operações sensíveis.
-- Testes automatizados em múltiplas camadas.
-- Organização para evolução (OpenAPI + estrutura modular).
-
----
-
-## 📄 Licença
-
-Defina aqui a licença desejada (ex.: MIT) caso o projeto seja público.
 

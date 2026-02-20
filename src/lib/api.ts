@@ -22,6 +22,10 @@ async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
+  if (!BASE_URL) {
+    throw new Error('VITE_API_BASE_URL is not configured');
+  }
+
   const token = getStoredToken();
 
   const headers: Record<string, string> = {
@@ -43,10 +47,20 @@ async function request<T>(
     return undefined as T;
   }
 
-  const json = await res.json();
+  const contentType = res.headers.get('content-type') ?? '';
+  const hasJsonBody = contentType.includes('application/json');
+  const json = hasJsonBody ? await res.json() : null;
 
   if (!res.ok) {
-    throw new ApiError(res.status, json.error as ApiErrorBody);
+    if (json && typeof json === 'object' && 'error' in json) {
+      throw new ApiError(res.status, json.error as ApiErrorBody);
+    }
+
+    throw new ApiError(res.status, {
+      code: 'unknown_error',
+      message: `Request failed with status ${res.status}`,
+      correlation_id: null,
+    });
   }
 
   return json as T;

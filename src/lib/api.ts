@@ -1,6 +1,11 @@
 import { ApiError, ApiErrorBody } from '@/types/api';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+// In development the Vite proxy forwards /api/* → http://127.0.0.1:8000,
+// so an empty env var is fine — we fall back to the relative path /api/v1.
+// In production set VITE_API_BASE_URL=https://ordem-system-api.fly.dev/api/v1
+const BASE_URL: string =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1';
+
 const TOKEN_KEY = 'auth_token';
 
 export function getStoredToken(): string | null {
@@ -22,10 +27,6 @@ async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  if (!BASE_URL) {
-    throw new Error('VITE_API_BASE_URL is not configured');
-  }
-
   const token = getStoredToken();
 
   const headers: Record<string, string> = {

@@ -80,11 +80,10 @@ src/
 A aplicação usa variável de ambiente para conexão com backend:
 
 ```bash
-# Para produção — aponta para a API hospedada
-VITE_API_BASE_URL=https://sua-api.railway.app
+# Produção — definir no painel do Vercel: Settings → Environment Variables
+VITE_API_BASE_URL=https://ordem-system-api.fly.dev/api/v1
 
-# Para desenvolvimento local — deixe vazio para usar o proxy do Vite
-# (o Vite redireciona /api/* para http://127.0.0.1:8000 automaticamente)
+# Desenvolvimento local — deixe vazio; o proxy do Vite cuida do redirecionamento
 VITE_API_BASE_URL=
 ```
 

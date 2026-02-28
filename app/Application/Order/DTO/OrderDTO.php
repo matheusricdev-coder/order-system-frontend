@@ -17,6 +17,8 @@ final class OrderDTO
         public readonly int $totalAmountInCents,
         public readonly string $currency,
         public readonly array $items,
+        public readonly ?string $paymentIntentId = null,
+        public readonly ?string $clientSecret = null,
     ) {}
 
     public static function fromDomain(Order $order): self
@@ -33,23 +35,28 @@ final class OrderDTO
                 static fn(OrderItem $item) => OrderItemDTO::fromDomain($item),
                 $order->items(),
             ),
+            paymentIntentId: $order->paymentIntentId(),
         );
     }
 
     public function toArray(): array
     {
-        return [
-            'id'       => $this->id,
-            'userId'   => $this->userId,
-            'status'   => $this->status,
-            'total'    => [
+        return array_filter([
+            'id'              => $this->id,
+            'userId'          => $this->userId,
+            'status'          => $this->status,
+            'total'           => [
                 'amount'   => $this->totalAmountInCents,
                 'currency' => $this->currency,
             ],
-            'items'    => array_map(
+            'items'           => array_map(
                 static fn(OrderItemDTO $item) => $item->toArray(),
                 $this->items,
             ),
-        ];
+            // Only present when a payment is being initiated — consumed by the frontend
+            // to call stripe.confirmPayment(). Not stored server-side.
+            'clientSecret'    => $this->clientSecret,
+            'paymentIntentId' => $this->paymentIntentId,
+        ], static fn (mixed $v) => $v !== null);
     }
 }

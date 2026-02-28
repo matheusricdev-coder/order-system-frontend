@@ -1,236 +1,157 @@
-# Order System API
+# Order System — Frontend
 
-API de marketplace construída em **Laravel 12 + PHP 8.3** com foco em **qualidade arquitetural**, **consistência transacional** e boas práticas de **DDD (Domain-Driven Design)** para cenários reais de pedidos, estoque e autenticação.
+Interface web moderna para um marketplace com autenticação, catálogo de produtos, carrinho persistente e criação de pedidos. Construída com foco em experiência de usuário, boas práticas de frontend e arquitetura escalável para integração com APIs reais.
 
-> Projeto de portfólio com abordagem profissional para demonstrar domínio de arquitetura, design de software e testes automatizados.
+> **Demo ao vivo:** [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app)
 
-> **Demo ao vivo:** [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app) · Frontend: [lovable-orders](https://github.com/seu-usuario/lovable-orders)
+## Visão Geral
 
----
+O **Order System Frontend** simula um fluxo real de e-commerce:
 
-## 📌 Visão Geral
+- Navegação por catálogo com filtros por categoria e busca.
+- Página de produto com galeria e ação de compra.
+- Carrinho lateral com persistência no `localStorage`.
+- Login/cadastro com integração de autenticação via token.
+- Criação de pedidos conectada ao backend.
+- Gamificação com barra de login diário e saldo de moedas.
 
-O projeto implementa um núcleo de e-commerce com:
+## Stack Técnica
 
-- Catálogo público de produtos, categorias e empresas.
-- Gestão de pedidos com ciclo de vida explícito (`created -> paid/cancelled`).
-- Controle de estoque com **reserva**, **consumo** e **liberação**.
-- API autenticada com **Laravel Sanctum**.
-- Observabilidade básica por **Correlation ID**.
-- Especificação OpenAPI disponível em `docs/openapi.yaml`.
+- **React 18** + **TypeScript**
+- **Vite**
+- **React Router DOM**
+- **TanStack React Query**
+- **Tailwind CSS**
+- **shadcn/ui** + **Radix UI**
+- **Vitest** + Testing Library
+- **ESLint**
 
-### Principais objetivos técnicos
+## Arquitetura do Projeto
 
-- Evitar inconsistências de estado com uso de transações e lock pessimista.
-- Separar regras de negócio do framework por meio de camadas e contratos.
-- Expor um código legível e sustentável para evolução do produto.
-
----
-
-## 🧱 Arquitetura
-
-O código segue uma combinação de:
-
-- **Clean Architecture**
-- **Hexagonal (Ports & Adapters)**
-- **DDD tático**
-
-### Camadas
-
-- **Domain (`app/Domain`)**: entidades, value objects, enums, eventos e invariantes de negócio.
-- **Application (`app/Application`)**: casos de uso (handlers), comandos/queries, portas (interfaces) e orquestração transacional.
-- **Infrastructure (`app/Infrastructure`)**: repositórios Eloquent, barramento de eventos e transações Laravel.
-- **Interface (`app/Http`, `routes`)**: controllers, requests, middleware e endpoints REST.
-
-### Direção de dependências
-
-```text
-Interface -> Application -> Domain
-Infrastructure -> Application -> Domain
+```bash
+src/
+  components/      # componentes visuais e blocos de UI
+  contexts/        # estado global (auth e carrinho)
+  hooks/           # hooks de integração com API e regras de negócio
+  lib/             # cliente HTTP e utilitários
+  pages/           # telas principais da aplicação
+  types/           # contratos tipados da API
+  test/            # setup e testes
 ```
 
-A camada de domínio não depende de Laravel/Eloquent.
+## Funcionalidades Implementadas
 
----
+### 1) Catálogo e Busca
+- Listagem de produtos com skeleton loading.
+- Filtro por categoria.
+- Busca textual por produtos.
 
-## ✅ Regras de Negócio Implementadas
+### 2) Produto
+- Galeria com imagem principal e miniaturas.
+- Fallback visual quando não há imagem.
+- Adição ao carrinho com feedback de toast.
 
-### Pedido (Order)
+### 3) Carrinho
+- Carrinho lateral (drawer) acessível em toda a aplicação.
+- Incremento/decremento de quantidade.
+- Remoção de itens.
+- Cálculo automático de subtotal.
+- Persistência em `localStorage`.
 
-- Um pedido inicia em `created`.
-- Só pode transitar para `paid` ou `cancelled`.
-- Transições inválidas geram exceção de domínio.
-- Total é calculado com `Money` (valor em centavos + moeda).
+### 4) Autenticação
+- Login e cadastro com validações de formulário.
+- Armazenamento de token.
+- Reidratação de sessão ao abrir a aplicação.
+- Logout com limpeza de sessão local.
 
-### Estoque (Stock)
+### 5) Pedidos
+- Criação de pedido a partir do carrinho.
+- Integração preparada para listagem, pagamento e cancelamento.
 
-- Nunca pode ficar negativo.
-- Reserva exige disponibilidade.
-- Consumo só ocorre sobre quantidade previamente reservada.
-- Cancelamento de pedido libera reserva.
+## Integração com API
 
-### Usuário
+A aplicação usa variável de ambiente para conexão com backend:
 
-- Usuário inativo não pode criar pedidos.
-- Endpoints de pedidos exigem autenticação.
+```bash
+# Produção — definir no painel do Vercel: Settings → Environment Variables
+VITE_API_BASE_URL=https://ordem-system-api.fly.dev/api/v1
 
----
-
-## 🗂️ Estrutura de Pastas (resumo)
-
-```text
-app/
-├── Domain/                # Entidades, VO, eventos, regras
-├── Application/           # Casos de uso, DTOs, portas
-├── Infrastructure/        # Adapters concretos (Eloquent, transações, event bus)
-└── Http/                  # API controllers, requests e middleware
-
-database/
-├── migrations/            # Schema, constraints e relacionamentos
-└── seeders/               # Dados iniciais de catálogo/admin
-
-tests/
-├── Unit/                  # Testes de domínio e aplicação
-└── Feature/               # Testes HTTP end-to-end
-
-docs/
-└── openapi.yaml           # Contrato da API
+# Desenvolvimento local — deixe vazio; o proxy do Vite cuida do redirecionamento
+VITE_API_BASE_URL=
 ```
 
----
+### Endpoints esperados
 
-## 🚀 Como Executar Localmente
+- `POST /auth/login`
+- `POST /auth/register`
+- `POST /auth/logout`
+- `GET /me`
+- `GET /me/login-streak`
+- `GET /categories`
+- `GET /products`
+- `GET /products/:id`
+- `POST /orders`
+- `GET /orders`
+- `GET /orders/:id`
+- `POST /orders/:id/pay`
+- `POST /orders/:id/cancel`
+
+## Como Rodar Localmente
 
 ### Pré-requisitos
-
-- PHP 8.3+
-- Composer
-- Banco de dados (SQLite, MySQL ou PostgreSQL)
-- Node.js 18+ (apenas para build de assets)
+- Node.js 18+
+- npm 9+
 
 ### Passo a passo
 
-1. Clone o repositório:
-
 ```bash
-git clone https://github.com/seu-usuario/ordem-system.git
-cd ordem-system
+# 1) Instalar dependências
+npm install
+
+# 2) Criar arquivo de variáveis de ambiente
+cp .env.example .env 2>/dev/null || echo "VITE_API_BASE_URL=" > .env
+
+# 3) Iniciar em modo desenvolvimento (backend deve estar rodando em :8000)
+npm run dev
 ```
 
-2. Instale dependências PHP:
+A aplicação ficará disponível em `http://localhost:5173`.
+
+## Scripts Disponíveis
 
 ```bash
-composer install
+npm run dev         # ambiente de desenvolvimento
+npm run build       # build de produção
+npm run preview     # preview local do build
+npm run lint        # validação estática com ESLint
+npm run test        # testes com Vitest
+npm run test:watch  # testes em modo observação
 ```
 
-3. Configure ambiente:
+## Qualidade e Boas Práticas
 
-```bash
-cp .env.example .env
-php artisan key:generate
-```
+- Tipagem forte para payloads e respostas de API.
+- Separação de responsabilidade entre UI, hooks e camada HTTP.
+- Tratamento de erro padronizado com classe `ApiError`.
+- Feedback visual para estados de loading/erro/sucesso.
 
-4. Configure o banco de dados no `.env` (SQLite já vem pré-configurado) e rode migrations:
+## Capturas de Tela
 
-```bash
-php artisan migrate --seed
-```
+> Sugestão: adicione imagens reais do projeto em execução para reforçar o impacto do portfolio.
 
-5. Suba o servidor:
+- Home (catálogo + filtros)
+- Página de produto
+- Tela de login/cadastro
+- Carrinho aberto
 
-```bash
-php artisan serve
-```
+## Autor
 
-API disponível em: `http://127.0.0.1:8000/api/v1`
+Desenvolvido como projeto de portfolio para demonstrar capacidade em:
+
+- Frontend moderno com React + TypeScript
+- Integração profissional com APIs
+- Estrutura de projeto pronta para evolução em ambiente real
 
 ---
 
-## 🔐 Autenticação
-
-Fluxo padrão:
-
-1. `POST /api/v1/auth/register`
-2. `POST /api/v1/auth/login`
-3. Usar token Bearer retornado no header:
-
-```http
-Authorization: Bearer <token>
-```
-
-Endpoints protegidos:
-
-- `/api/v1/orders/*`
-- `/api/v1/me`
-- `/api/v1/me/login-streak`
-- `/api/v1/auth/logout`
-
----
-
-## 📚 Endpoints Principais
-
-### Catálogo (público)
-
-- `GET /api/v1/products`
-- `GET /api/v1/products/{id}`
-- `GET /api/v1/categories`
-- `GET /api/v1/companies/{id}`
-- `GET /api/v1/companies/{id}/products`
-- `GET /api/v1/stocks/{productId}`
-- `GET /api/v1/products/{id}/stock`
-
-### Pedidos (autenticado)
-
-- `POST /api/v1/orders`
-- `POST /api/v1/orders/{id}/pay`
-- `POST /api/v1/orders/{id}/cancel`
-- `GET /api/v1/orders/{id}`
-- `GET /api/v1/orders`
-
-### Infra
-
-- `GET /api/health`
-
----
-
-## 🧪 Qualidade e Testes
-
-A suíte cobre:
-
-- Regras de domínio (`Order`, `OrderItem`, `Stock`, `Money`, `User`).
-- Casos de uso da aplicação (create/pay/cancel/list/get).
-- Fluxos HTTP críticos (auth, catálogo e pedidos).
-
-Comandos úteis:
-
-```bash
-php artisan test
-./vendor/bin/phpunit
-```
-
----
-
-## 🧭 Observabilidade e Resiliência
-
-- Middleware de **Correlation ID** (`X-Correlation-Id`) para rastreabilidade.
-- Mapeamento consistente de exceções para respostas JSON.
-- Códigos HTTP alinhados ao tipo de erro (validação, autorização, domínio etc.).
-
----
-
-## 🛠️ Deploy
-
-O repositório possui configurações para deploy no **Fly.io** (`fly.toml`, `Dockerfile`).
-
-URL de produção: `https://ordem-system-api.fly.dev`
-
-Outros arquivos de configuração presentes:
-- `nixpacks.toml`
-
-## 💻 Frontend
-
-Este projeto possui uma interface web completa integrada a esta API.
-
-- **Demo:** [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app)
-- **Repositório:** [lovable-orders](https://github.com/seu-usuario/lovable-orders) — React 18 + TypeScript + Tailwind
-
+*Projeto de portfólio — Backend: [ordem-system](https://github.com/seu-usuario/ordem-system) · Demo: [ordexa-sys.vercel.app](https://ordexa-sys.vercel.app)*

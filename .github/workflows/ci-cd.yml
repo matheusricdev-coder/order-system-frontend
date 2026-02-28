@@ -8,77 +8,49 @@ on:
 
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 1 — Backend tests (PHP + MySQL)
+  # JOB 1 — Type-check + Build
   # ───────────────────────────────────────────────────────────────────────────
-  backend-tests:
-    name: 🧪 Backend Tests
+  build:
+    name: 🏗️ Build & Type Check
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: order_system_testing
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
-        uses: shivammathur/setup-php@v2
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
         with:
-          php-version: "8.3"
-          extensions: pdo, pdo_mysql, mbstring, xml, bcmath, zip, gd
-          coverage: none
+          node-version: "20"
+          cache: "npm"
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: vendor
-          key: composer-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+      - name: Type check
+        run: npx tsc --noEmit
 
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      - name: Run tests
-        run: php artisan test
+      - name: Build
+        run: npm run build
         env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: order_system_testing
-          DB_USERNAME: root
-          DB_PASSWORD: root
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 2 — Deploy backend → Fly.io  (main only)
+  # JOB 2 — Deploy → Vercel  (main only)
   # ───────────────────────────────────────────────────────────────────────────
-  deploy-backend:
-    name: 🚀 Deploy Backend → Fly.io
-    needs: [backend-tests]
+  deploy:
+    name: 🚀 Deploy → Vercel
+    needs: [build]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install Vercel CLI
+        run: npm install -g vercel
 
-      - name: Deploy
-        run: flyctl deploy --remote-only
+      - name: Deploy to Vercel
+        run: vercel --token=${{ secrets.VERCEL_TOKEN }} --prod --yes
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

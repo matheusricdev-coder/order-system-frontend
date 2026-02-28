@@ -1,35 +1,61 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListProductsRequest;
 use App\Models\CategoryModel;
 use App\Models\ProductModel;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class CatalogController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(ListProductsRequest $request): JsonResponse
     {
-        $query = ProductModel::query();
+        $validated = $request->validated();
 
-        if ($categoryId = $request->query('categoryId')) {
-            $query->where('category_id', $categoryId);
+        $query = ProductModel::query()->with(['gallery', 'category', 'company']);
+
+        // ── Filters ───────────────────────────────────────────────────────────
+        if (!empty($validated['categoryId'])) {
+            $query->where('category_id', $validated['categoryId']);
         }
 
-        if ($companyId = $request->query('companyId')) {
-            $query->where('company_id', $companyId);
+        if (!empty($validated['companyId'])) {
+            $query->where('company_id', $validated['companyId']);
         }
 
-        if ($search = $request->query('q')) {
-            $query->where('name', 'like', "%{$search}%");
+        if (!empty($validated['q'])) {
+            $query->where('name', 'like', '%' . $validated['q'] . '%');
         }
+
+        if (!empty($validated['minPrice'])) {
+            // minPrice is passed in BRL cents from the frontend
+            $query->where('price_amount', '>=', (int) $validated['minPrice']);
+        }
+
+        if (!empty($validated['maxPrice'])) {
+            $query->where('price_amount', '<=', (int) $validated['maxPrice']);
+        }
+
+        // ── Sorting ───────────────────────────────────────────────────────────
+        $sortBy  = $validated['sortBy'] ?? 'name';
+        $sortDir = $validated['sortDir'] ?? 'asc';
+
+        $query->orderBy(match ($sortBy) {
+            'price' => 'price_amount',
+            'name'  => 'name',
+            default => 'name',
+        }, in_array($sortDir, ['asc', 'desc'], true) ? $sortDir : 'asc');
+
+        // ── Pagination ────────────────────────────────────────────────────────
+        $perPage = min((int) ($validated['perPage'] ?? 15), 50);
+        $page    = (int) ($validated['page'] ?? 1);
 
         $paginator = $query
-            ->with(['gallery', 'category', 'company'])
-            ->orderBy('name')
-            ->paginate((int) $request->query('perPage', 15))
+            ->paginate(perPage: $perPage, page: $page)
             ->through(fn (ProductModel $product): array => $this->toProductDto($product));
 
         return response()->json([

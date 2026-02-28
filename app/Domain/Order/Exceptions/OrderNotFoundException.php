@@ -10,4 +10,9 @@ final class OrderNotFoundException extends \DomainException
     {
         return new self('Order not found');
     }
+
+    public static function withPaymentIntentId(string $intentId): self
+    {
+        return new self('Order not found for the given payment intent');
+    }
 }

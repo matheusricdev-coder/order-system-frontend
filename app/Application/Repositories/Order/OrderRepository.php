@@ -11,4 +11,6 @@ interface OrderRepository
     public function findById(string $id): Order;
 
     public function findByIdForUpdate(string $id): Order;
+
+    public function findByPaymentIntentId(string $intentId): Order;
 }

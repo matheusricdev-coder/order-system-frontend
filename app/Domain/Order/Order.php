@@ -15,6 +15,7 @@ final class Order
     private string $id;
     private string $userId;
     private OrderStatus $status;
+    private ?string $paymentIntentId = null;
 
     /** @var OrderItem[] */
     private array $items = [];
@@ -40,10 +41,12 @@ final class Order
         string $userId,
         OrderStatus $status,
         array $items,
+        ?string $paymentIntentId = null,
     ): self {
-        $order         = new self($id, $userId);
-        $order->status = $status;
-        $order->items  = $items;
+        $order                  = new self($id, $userId);
+        $order->status          = $status;
+        $order->items           = $items;
+        $order->paymentIntentId = $paymentIntentId;
 
         return $order;
     }
@@ -52,6 +55,7 @@ final class Order
     public function userId(): string { return $this->userId; }
     public function items(): array { return $this->items; }
     public function status(): OrderStatus { return $this->status; }
+    public function paymentIntentId(): ?string { return $this->paymentIntentId; }
 
     public function ownedBy(string $userId): bool
     {
@@ -84,6 +88,21 @@ final class Order
     public function canBePaid(): bool
     {
         return $this->status->canTransitionTo(OrderStatus::PAID);
+    }
+
+    public function canInitiatePayment(): bool
+    {
+        return $this->status->canTransitionTo(OrderStatus::PAYMENT_PENDING);
+    }
+
+    public function attachPaymentIntent(string $intentId): void
+    {
+        if (!$this->canInitiatePayment()) {
+            throw new \DomainException("Cannot initiate payment for order in status [{$this->status->value}]");
+        }
+
+        $this->paymentIntentId = $intentId;
+        $this->status          = OrderStatus::PAYMENT_PENDING;
     }
 
     public function markAsPaid(): void

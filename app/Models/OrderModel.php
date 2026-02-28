@@ -15,6 +15,7 @@ final class OrderModel extends Model
         'id',
         'user_id',
         'status',
+        'payment_intent_id',
     ];
 
     public function items(): HasMany
